@@ -1,0 +1,2990 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GESTAPACK — Dashboard de Ventas 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d0d0d;
+  --bg2:#161616;
+  --bg3:#1e1e1e;
+  --bg4:#252525;
+  --gold:#c9a84c;
+  --gold2:#e8c97a;
+  --gold3:#8a6a20;
+  --text:#e8e4d9;
+  --text2:#9a9080;
+  --text3:#5a5248;
+  --border:rgba(201,168,76,0.15);
+  --border2:rgba(201,168,76,0.3);
+  --green:#4caf7d;
+  --red:#e05c5c;
+  --radius:10px;
+  --radius-sm:6px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;font-size:14px;}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+.topbar-logo img{height:28px;filter:brightness(1.1);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.upload-area{display:flex;align-items:center;gap:8px;}
+.btn-upload{background:var(--gold3);border:1px solid var(--gold);color:var(--gold2);padding:7px 16px;border-radius:var(--radius-sm);font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.3px;}
+.btn-upload:hover{background:var(--gold);color:#0d0d0d;}
+.file-label{font-size:0.75rem;color:var(--text2);}
+.file-label.ok{color:var(--green);}
+
+/* TABS */
+.tabs-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;gap:0;}
+.tab-btn{padding:12px 22px;font-size:0.82rem;font-weight:500;cursor:pointer;color:var(--text2);border:none;background:transparent;border-bottom:2px solid transparent;transition:all 0.2s;letter-spacing:0.3px;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* MAIN */
+.main{padding:1.5rem;max-width:1400px;margin:0 auto;}
+
+/* CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:1.5rem;}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.kpi-label{font-size:0.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.kpi-value{font-size:1.35rem;font-weight:700;color:var(--text);line-height:1;}
+.kpi-value.gold{color:var(--gold);}
+.kpi-sub{font-size:0.72rem;color:var(--text2);margin-top:4px;}
+.kpi-pct{font-weight:600;}
+.kpi-pct.green{color:var(--green);}
+.kpi-pct.red{color:var(--red);}
+
+/* SECTION HEADER */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin:1.5rem 0 0.75rem;}
+.section-title{font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--gold);display:flex;align-items:center;gap:8px;}
+.section-title::before{content:'';display:block;width:3px;height:14px;background:var(--gold);border-radius:2px;}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+thead th{background:var(--bg3);color:var(--text2);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.6px;padding:10px 14px;text-align:right;white-space:nowrap;}
+thead th:first-child{text-align:left;}
+tbody tr{border-top:1px solid var(--border);}
+tbody tr:hover{background:var(--bg3);}
+tbody td{padding:9px 14px;text-align:right;color:var(--text);}
+tbody td:first-child{text-align:left;font-weight:500;}
+.tbl-total{background:var(--bg3)!important;font-weight:700;}
+.tbl-total td{color:var(--gold)!important;border-top:1px solid var(--border2)!important;}
+.pct-bar-wrap{display:flex;align-items:center;gap:8px;}
+.pct-bar{flex:1;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.pct-bar-fill{height:100%;background:var(--gold);border-radius:3px;transition:width 0.4s;}
+.pct-bar-fill.over{background:var(--green);}
+.pct-bar-fill.low{background:var(--red);}
+.pct-txt{font-size:0.75rem;font-weight:600;min-width:42px;text-align:right;}
+.pct-txt.green{color:var(--green);}
+.pct-txt.red{color:var(--red);}
+.pct-txt.gold{color:var(--gold);}
+
+/* MONTH SELECTOR */
+.month-sel{display:flex;align-items:center;gap:8px;}
+.month-sel select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:var(--radius-sm);font-size:0.8rem;cursor:pointer;}
+
+/* EMPTY */
+.empty{text-align:center;padding:4rem 2rem;color:var(--text2);}
+.empty-icon{font-size:2.5rem;margin-bottom:1rem;opacity:0.3;}
+.empty h3{font-size:1rem;margin-bottom:0.4rem;color:var(--text3);}
+.empty p{font-size:0.82rem;opacity:0.7;}
+
+/* TOP INTERACTIVE */
+.top-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.top-list{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.top-list-hdr{padding:12px 16px;background:var(--bg3);font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--gold);}
+.top-item{padding:10px 16px;border-top:1px solid var(--border);cursor:pointer;transition:background 0.15s;display:flex;align-items:center;gap:10px;}
+.top-item:hover{background:var(--bg3);}
+.top-item.active{background:var(--bg4);}
+.top-rank{font-size:0.7rem;font-weight:700;color:var(--text3);min-width:18px;}
+.top-name{flex:1;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.top-val{font-size:0.82rem;font-weight:600;color:var(--gold);white-space:nowrap;}
+.top-detail{padding:10px 16px;background:var(--bg4);border-top:1px solid var(--border2);}
+.top-detail-item{display:flex;justify-content:space-between;padding:4px 0;font-size:0.78rem;color:var(--text2);}
+.top-detail-item span:last-child{color:var(--text);font-weight:500;}
+
+/* RANKING */
+.ranking-podium{display:flex;justify-content:center;gap:1rem;margin-bottom:1.5rem;}
+.podium-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;min-width:140px;}
+.podium-card.gold-card{border-color:var(--gold);background:rgba(201,168,76,0.07);}
+.podium-num{font-size:1.5rem;margin-bottom:4px;}
+.podium-name{font-size:0.85rem;font-weight:600;color:var(--text);margin-bottom:4px;}
+.podium-pct{font-size:1.1rem;font-weight:700;color:var(--gold);}
+
+/* METAS */
+.metas-grid{display:grid;grid-template-columns:1fr;gap:1rem;}
+.meta-month-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.meta-month-hdr{padding:12px 16px;background:var(--bg3);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.meta-month-hdr h3{font-size:0.8rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.6px;}
+.meta-month-hdr .meta-total{font-size:0.8rem;color:var(--text2);}
+.meta-body{padding:12px;}
+.meta-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);}
+.meta-row:last-child{border-bottom:none;}
+.meta-vendedor{flex:1;font-size:0.82rem;}
+.meta-input{background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:var(--radius-sm);font-size:0.82rem;width:140px;text-align:right;}
+.meta-input:focus{outline:none;border-color:var(--gold);}
+.btn-save-meta{background:var(--gold3);border:1px solid var(--gold);color:var(--gold2);padding:5px 12px;border-radius:var(--radius-sm);font-size:0.75rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.btn-save-meta:hover{background:var(--gold);color:#0d0d0d;}
+.save-msg{font-size:0.72rem;color:var(--green);opacity:0;transition:opacity 0.3s;}
+.save-msg.show{opacity:1;}
+
+/* TRIMESTRE */
+.trim-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:1rem;}
+.trim-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;}
+.trim-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);margin-bottom:6px;}
+.trim-winner{font-size:0.9rem;font-weight:700;color:var(--gold);margin-bottom:4px;}
+.trim-pct{font-size:0.78rem;color:var(--text2);}
+.trim-card.current{border-color:var(--gold);}
+
+/* HIDDEN */
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* CHIP */
+.chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.68rem;font-weight:600;letter-spacing:0.3px;}
+.chip.green{background:rgba(76,175,125,0.15);color:var(--green);}
+.chip.red{background:rgba(224,92,92,0.15);color:var(--red);}
+.chip.gold{background:rgba(201,168,76,0.15);color:var(--gold);}
+
+/* PROYECCION */
+.proy-box{background:rgba(201,168,76,0.07);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+.proy-label{font-size:0.75rem;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;}
+.proy-val{font-size:1.1rem;font-weight:700;color:var(--gold2);}
+.proy-detail{font-size:0.72rem;color:var(--text2);margin-top:2px;}
+
+@media(max-width:900px){
+  .top-grid{grid-template-columns:1fr;}
+  .trim-grid{grid-template-columns:repeat(2,1fr);}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <img src="data:image/png;base64,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7v8AZn8d3Xic6d/atlqFqbW4txJ5TfeDK6ttblSCMEYIJ9iPLzrDVMRgqlGkrya0+TTO/LK8KOKhUm9F/lY/qA7Uma/MWy/4KpfA6SINqOha7E+ORHHbyDP1M6fyq5/w9O/Z9/6A/iH/AMB7b/5Jr8zeQ5gv+XLPuP7Wwf8Az8R+loI7V8Ff8FJbtIP2X72F8Znv7NF+oct/Ja4OX/gqf8A1QmDRfEDN2DQW6j8xcn+VfCf7YH7bcP7R/hux8DeGdIl0vS7W6F5LJcSBpZpFVkQbV4VVDsT8zZOOmOfSyjI8bHGUqlSm1FNNt26HFmOa4Z4ecITTbVvvPz9ooor9OPhT/9T/AD/6KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//1f8AP/ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//W/wA/+iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//9f/AD/6KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACvqD9nT9ml/j5pPivxFf+JdP8J6V4Ttraa5v9TD/AGbzLuXyoo2ZMlNxBwdrcjGOePl+v05+GPgzwnD+wq3hjxP4rsvCF98RvEDX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" alt="GESTAPACK">
+  </div>
+  <div class="topbar-right">
+    <button class="btn-upload" style="background:transparent;border:1px solid var(--border2);color:var(--text2);font-size:0.75rem;" onclick="importarMetas()" title="Cargar respaldo de metas">&#8593; Importar Metas</button>
+    <button class="btn-upload" style="background:transparent;border:1px solid var(--border2);color:var(--text2);font-size:0.75rem;" onclick="exportarMetas()" title="Guardar respaldo de metas">&#8595; Exportar Metas</button>
+    <input type="file" id="metasFileInput" accept=".json" style="display:none" onchange="importarMetasArchivo(this)">
+    <div class="upload-area">
+      <label class="btn-upload" for="fileInput">&#8593; Cargar Excel</label>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+      <span class="file-label" id="fileLabel">Sin archivo cargado</span>
+    </div>
+  </div>
+</div>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="showTab('mes')">Mes Móvil</button>
+  <button class="tab-btn" onclick="showTab('anio')">Año Móvil</button>
+  <button class="tab-btn" onclick="showTab('cal')">Año Calendario</button>
+  <button class="tab-btn" onclick="showTab('historico')">Histórico</button>
+  <button class="tab-btn" onclick="showTab('top')">Top</button>
+  <button class="tab-btn" onclick="showTab('ranking')">Ranking</button>
+  <button class="tab-btn" onclick="showTab('metas')">Metas</button>
+  <button class="tab-btn" onclick="showTab('recuperacion')" style="color:#ef4444;border-bottom-color:transparent;">⚠ Recuperación</button>
+  <button class="tab-btn" onclick="showTab('descargar')" style="color:var(--gold);border-bottom-color:transparent;">⬇ Reportes</button>
+</div>
+
+<div class="main">
+
+  <!-- TAB MES MOVIL -->
+  <div id="tab-mes" class="tab-content active">
+    <div id="mes-empty" class="empty">
+      <div class="empty-icon">📊</div>
+      <h3>Carga tu reporte de ventas</h3>
+      <p>Haz clic en "Cargar Excel" para comenzar</p>
+    </div>
+    <div id="mes-content" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <div>
+          <div style="font-size:1rem;font-weight:700;color:var(--gold);" id="mes-titulo"></div>
+          <div style="font-size:0.75rem;color:var(--text2);margin-top:2px;" id="mes-semanas"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:0.75rem;color:var(--text2);">Días hábiles restantes:</span>
+          <span style="font-weight:700;color:var(--gold2);" id="dias-restantes"></span>
+          <span style="font-size:0.72rem;color:var(--text3);" id="feriados-periodo"></span>
+        </div>
+      </div>
+
+      <div class="proy-box">
+        <div>
+          <div class="proy-label">Proyección contribución al cierre</div>
+          <div class="proy-val" id="proy-empresa"></div>
+          <div class="proy-detail" id="proy-meta-empresa"></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="proy-label">Cumplimiento al día</div>
+          <div class="proy-val" id="cumpl-empresa"></div>
+          <div class="proy-detail" id="cumpl-meta-empresa"></div>
+        </div>
+      </div>
+
+      <!-- Venta de hoy -->
+      <div id="kpi-hoy" style="display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;"></div>
+      <div class="section-title" style="margin-bottom:0.75rem;">Empresa — Mes en curso</div>
+      <div class="kpi-grid" id="kpi-empresa"></div>
+
+      <div class="section-hdr">
+        <div class="section-title">Detalle por Vendedor</div>
+      </div>
+      <div class="tbl-wrap">
+        <table id="tbl-vendedores">
+          <thead>
+            <tr>
+              <th style="text-align:left">Vendedor</th>
+              <th>Venta $</th>
+              <th>Contribución $</th>
+              <th>Margen %</th>
+              <th>Contrib/Kg</th>
+              <th>Ticket Prom.</th>
+              <th>Clientes</th>
+              <th>SKUs</th>
+              <th>Cumpl. al día</th>
+              <th>Proyección</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-vendedores"></tbody>
+        </table>
+      </div>
+
+      <div class="section-hdr" style="margin-top:1.5rem;">
+        <div class="section-title">Semanas del mes</div>
+      </div>
+      <div class="tbl-wrap">
+        <table id="tbl-semanas">
+          <thead>
+            <tr>
+              <th style="text-align:left">Semana</th>
+              <th>Período</th>
+              <th>Venta $</th>
+              <th>Contribución $</th>
+              <th>Margen %</th>
+              <th>Kilos</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-semanas"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB AÑO MOVIL -->
+  <div id="tab-anio" class="tab-content">
+    <div id="anio-empty" class="empty">
+      <div class="empty-icon">📅</div>
+      <h3>Carga tu reporte de ventas</h3>
+      <p>Haz clic en "Cargar Excel" para comenzar</p>
+    </div>
+    <div id="anio-content" style="display:none">
+      <div class="section-title" style="margin-bottom:1rem;">Año Móvil 2026 — Resultados por Mes</div>
+      <div class="tbl-wrap" id="tbl-anio-wrap"></div>
+    </div>
+  </div>
+
+  <!-- TAB TOP -->
+  <div id="tab-top" class="tab-content">
+    <div id="top-empty" class="empty">
+      <div class="empty-icon">🏆</div>
+      <h3>Carga tu reporte de ventas</h3>
+      <p>Haz clic en "Cargar Excel" para comenzar</p>
+    </div>
+    <div id="top-content" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;">
+        <span style="font-size:0.78rem;color:var(--text2);">Mes móvil:</span>
+        <select id="top-mes-sel" onchange="renderTop()"></select>
+      </div>
+      <div class="top-grid">
+        <div>
+          <div class="section-title" style="margin-bottom:0.75rem;">Top 10 Clientes por Contribución</div>
+          <div class="top-list" id="top-clientes-list"></div>
+        </div>
+        <div>
+          <div class="section-title" style="margin-bottom:0.75rem;">Top 10 Productos por Contribución</div>
+          <div class="top-list" id="top-productos-list"></div>
+        </div>
+      </div>
+
+      <!-- Clientes con margen bajo 15% -->
+      <div style="margin-top:2rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+          <div class="section-title">Clientes con Peor Margen <span style="font-size:0.72rem;color:var(--red);font-weight:400;letter-spacing:0;text-transform:none;">(margen contrib. &lt; 15%)</span></div>
+          <button onclick="exportarPeorMargenXLSX()" style="display:flex;align-items:center;gap:6px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);color:#c9a84c;padding:6px 14px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;letter-spacing:0.3px;" onmouseover="this.style.background='rgba(201,168,76,0.22)'" onmouseout="this.style.background='rgba(201,168,76,0.12)'">
+            ↓ Descargar Excel
+          </button>
+        </div>
+        <p style="font-size:0.75rem;color:#9a9080;margin-bottom:0.75rem;">Pincha cada cliente para ver los productos que bajan el margen.</p>
+        <div class="tbl-wrap" id="tbl-peor-margen-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:left">Cliente</th>
+                <th style="text-align:left">Vendedor</th>
+                <th>Venta $</th>
+                <th>Contribución $</th>
+                <th>Margen %</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-peor-margen"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB RECUPERACIÓN DE CLIENTES -->
+  <div id="tab-recuperacion" class="tab-content">
+    <div class="section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+        <div>
+          <div class="section-title" style="margin-bottom:0.25rem;">Recuperación de Clientes</div>
+          <div style="font-size:0.75rem;color:var(--text2);">Comparando mes en curso vs promedio de los últimos 3 meses. Umbral de caída: &lt;30% del promedio histórico.</div>
+        </div>
+        <button onclick="exportarRecuperacionXLSX()" style="display:flex;align-items:center;gap:6px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);color:#ef4444;padding:6px 14px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">↓ Descargar Excel</button>
+      </div>
+
+      <!-- Filtro vendedor -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;">
+        <span style="font-size:0.75rem;color:var(--text2);">Vendedor:</span>
+        <select id="rec-vendedor-sel" onchange="renderRecuperacion()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:6px;font-size:0.8rem;">
+          <option value="">Todos</option>
+        </select>
+        <span style="font-size:0.75rem;color:var(--text2);margin-left:1rem;">Tipo:</span>
+        <select id="rec-tipo-sel" onchange="renderRecuperacion()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:6px;font-size:0.8rem;">
+          <option value="">Todos</option>
+          <option value="sin_compra">Sin compra este mes</option>
+          <option value="caida">Caída &gt;70%</option>
+          <option value="producto">Dejó un producto</option>
+        </select>
+      </div>
+
+      <!-- Resumen pills -->
+      <div style="display:flex;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap;" id="rec-pills"></div>
+
+      <!-- Tabla sin compra -->
+      <div id="rec-sin-compra-block">
+        <div class="section-title" style="color:#ef4444;margin-bottom:0.5rem;">🔴 Sin compra este mes</div>
+        <div class="tbl-wrap" style="margin-bottom:1.5rem;">
+          <table><thead><tr>
+            <th style="text-align:left">Cliente</th>
+            <th style="text-align:left">Vendedor</th>
+            <th>Prom. mensual 3M $</th>
+            <th>Último mes activo</th>
+            <th>Meses sin compra</th>
+          </tr></thead>
+          <tbody id="rec-tbody-sin"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabla caída fuerte -->
+      <div id="rec-caida-block">
+        <div class="section-title" style="color:#f59e0b;margin-bottom:0.5rem;">🟡 Caída fuerte (&lt;30% del promedio)</div>
+        <div class="tbl-wrap" style="margin-bottom:1.5rem;">
+          <table><thead><tr>
+            <th style="text-align:left">Cliente</th>
+            <th style="text-align:left">Vendedor</th>
+            <th>Prom. 3M $</th>
+            <th>Este mes $</th>
+            <th>% del promedio</th>
+          </tr></thead>
+          <tbody id="rec-tbody-caida"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabla productos perdidos -->
+      <div id="rec-prod-block">
+        <div class="section-title" style="color:#9a9080;margin-bottom:0.5rem;">📦 Dejaron un producto</div>
+        <p style="font-size:0.75rem;color:var(--text2);margin-bottom:0.75rem;">Producto del <strong style="color:var(--text)">Top 20 empresa</strong> comprado al menos 2 de los últimos 3 meses, ausente este mes.</p>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th style="text-align:left">Cliente</th>
+            <th style="text-align:left">Vendedor</th>
+            <th style="text-align:left">Producto perdido</th>
+            <th>Frecuencia 3M</th>
+            <th>Prom. venta producto $</th>
+          </tr></thead>
+          <tbody id="rec-tbody-prod"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB RANKING -->
+  <div id="tab-ranking" class="tab-content">
+    <div id="ranking-empty" class="empty">
+      <div class="empty-icon">🥇</div>
+      <h3>Carga tu reporte de ventas</h3>
+      <p>Haz clic en "Cargar Excel" para comenzar</p>
+    </div>
+    <div id="ranking-content" style="display:none">
+      <div class="section-title" style="margin-bottom:1rem;">Ranking — Mes en curso</div>
+      <div class="tbl-wrap" style="margin-bottom:1.5rem;">
+        <table>
+          <thead><tr>
+            <th style="text-align:left">Pos.</th>
+            <th style="text-align:left">Vendedor</th>
+            <th>Contribución</th>
+            <th>Meta</th>
+            <th>Cumplimiento</th>
+            <th>Proyección</th>
+          </tr></thead>
+          <tbody id="tbody-ranking-mes"></tbody>
+        </table>
+      </div>
+
+      <div class="section-title" style="margin-bottom:1rem;">Ganadores por Trimestre</div>
+      <div class="trim-grid" id="trim-grid"></div>
+
+      <div class="section-title" style="margin-bottom:1rem;margin-top:1.5rem;">Histórico Anual — % Cumplimiento</div>
+      <div class="tbl-wrap" id="tbl-historico-wrap"></div>
+    </div>
+  </div>
+
+  <!-- TAB AÑO CALENDARIO -->
+  <div id="tab-cal" class="tab-content">
+    <div id="cal-empty" class="empty">
+      <div class="empty-icon">📆</div>
+      <h3>Carga tu reporte de ventas</h3>
+      <p>Haz clic en "Cargar Excel" para comenzar</p>
+    </div>
+    <div id="cal-content" style="display:none"></div>
+  </div>
+
+  <!-- TAB HISTÓRICO -->
+  <div id="tab-historico" class="tab-content">
+    <div style="margin-bottom:1rem;">
+      <div class="section-title" style="margin-bottom:0.25rem;">Histórico de Cumplimiento — Mes Móvil</div>
+      <div style="font-size:0.75rem;color:var(--text2);">Cumplimiento de contribución vs meta por vendedor en cada mes móvil cerrado.</div>
+    </div>
+    <div id="historico-empty" class="empty">
+      <div class="empty-icon">📊</div>
+      <h3>Carga tu reporte de ventas primero</h3>
+      <p>Haz clic en "Cargar Excel" para ver el histórico</p>
+    </div>
+    <div id="historico-content" style="display:none"></div>
+  </div>
+
+  <!-- TAB DESCARGAR REPORTES -->
+  <div id="tab-descargar" class="tab-content">
+    <div style="margin-bottom:1rem;">
+      <div class="section-title" style="margin-bottom:0.25rem;">Descargar Reportes por Vendedor</div>
+      <div style="font-size:0.75rem;color:var(--text2);">Carga el Excel primero. Ingresa la contraseña de cada vendedor y descarga su reporte HTML personalizado.</div>
+    </div>
+    <div id="descargar-empty" class="empty">
+      <div class="empty-icon">📥</div>
+      <h3>Carga tu reporte de ventas primero</h3>
+      <p>Haz clic en "Cargar Excel" para habilitar los reportes</p>
+    </div>
+    <div id="descargar-content" style="display:none">
+      <div id="descargar-lista"></div>
+    </div>
+  </div>
+
+  <!-- TAB METAS -->
+  <div id="tab-metas" class="tab-content">
+    <div style="margin-bottom:1rem;">
+      <div class="section-title" style="margin-bottom:0.25rem;">Metas de Contribución por Vendedor</div>
+      <div style="font-size:0.75rem;color:var(--text2);">Las metas se guardan automáticamente en tu navegador y persisten entre sesiones.</div>
+    </div>
+    <div id="metas-content"></div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// CONSTANTES
+// ============================================================
+const FERIADOS_2026 = [
+  // 2025 (para mes móvil enero que arranca 26 dic 2025)
+  '2025-12-25', // Navidad
+  // 2026
+  '2026-01-01', // Año Nuevo
+  '2026-04-02', // Jueves Santo
+  '2026-04-03', // Viernes Santo
+  '2026-04-04', // Sábado Santo
+  '2026-05-01', // Día del Trabajador
+  '2026-05-21', // Glorias Navales
+  // '2026-06-21' eliminado — Día Pueblos Indígenas derogado (Ley 21.668, 2024)
+  '2026-06-29', // San Pedro y San Pablo
+  '2026-07-16', // Virgen del Carmen
+  '2026-08-15', // Asunción de la Virgen (sábado — sin efecto en hábiles)
+  '2026-09-18', // Fiestas Patrias
+  '2026-09-19', // Glorias del Ejército (sábado — sin efecto en hábiles)
+  '2026-10-12', // Encuentro de Dos Mundos
+  '2026-11-01', // Día de Todos los Santos (domingo — sin efecto en hábiles)
+  '2026-12-08', // Inmaculada Concepción
+  '2026-12-25'  // Navidad
+];
+const FERIADOS_SET = new Set(FERIADOS_2026);
+
+// Vendedores activos (mes en curso y metas)
+const VENDEDORES_ACTIVOS = [
+  'Andrés Toledo','Benjamin Diez','Carolina Nicoletti',
+  'Empresa','Ignacio del Solar','Manuela Gámez','Ricardo Saldias'
+];
+// Excluidos del mes en curso pero incluidos en histórico
+const VENDEDORES_EXCLUIDOS_MES = ['Alvaro Amenabar','Cesar Lepin','Pedro Avila','Raimundo Diez'];
+
+// Meses móviles del año 2026
+function getMesesMoviles() {
+  const meses = [];
+  const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const starts_raw = [
+    [2025,12,26],[2026,1,26],[2026,2,26],[2026,3,26],
+    [2026,4,26],[2026,5,26],[2026,6,26],[2026,7,26],
+    [2026,8,26],[2026,9,26],[2026,10,26],[2026,11,26]
+  ];
+  const ends_raw = [
+    [2026,1,25],[2026,2,25],[2026,3,25],[2026,4,25],
+    [2026,5,25],[2026,6,25],[2026,7,25],[2026,8,25],
+    [2026,9,25],[2026,10,25],[2026,11,25],[2026,12,25]
+  ];
+
+  for(let i=0;i<12;i++){
+    let s = new Date(starts_raw[i][0], starts_raw[i][1]-1, starts_raw[i][2]);
+    let e = new Date(ends_raw[i][0], ends_raw[i][1]-1, ends_raw[i][2]);
+    // Adjust start: if weekend, next Monday
+    while(s.getDay()===0||s.getDay()===6) s.setDate(s.getDate()+1);
+    // Adjust end: if weekend, prev Friday
+    while(e.getDay()===0||e.getDay()===6) e.setDate(e.getDate()-1);
+    // Get weeks
+    const semanas = getSemanas(s,e);
+    meses.push({nombre:nombres[i], start:s, end:e, semanas});
+  }
+  return meses;
+}
+
+function getSemanas(start, end) {
+  const semanas = [];
+  let cur = new Date(start);
+  while(cur <= end) {
+    const ws = new Date(cur);
+    // Next Thursday
+    const dow = cur.getDay(); // 0=Sun,1=Mon,...,4=Thu,5=Fri,6=Sat
+    let daysToThu = (4 - dow + 7) % 7;
+    if(daysToThu === 0) daysToThu = 7;
+    let we = new Date(cur);
+    we.setDate(we.getDate() + daysToThu);
+    if(we > end) we = new Date(end);
+    // Check min 3 workdays
+    let workdays = 0;
+    let d = new Date(ws);
+    while(d <= we) {
+      if(d.getDay()!==0 && d.getDay()!==6) workdays++;
+      d.setDate(d.getDate()+1);
+    }
+    if(workdays < 3 && semanas.length > 0) {
+      // Merge with previous
+      semanas[semanas.length-1].end = new Date(end);
+    } else {
+      semanas.push({start:new Date(ws), end:new Date(we)});
+    }
+    cur = new Date(we);
+    cur.setDate(cur.getDate()+1);
+  }
+  return semanas;
+}
+
+function isHabil(d) {
+  if(d.getDay()===0||d.getDay()===6) return false;
+  const key = d.toISOString().split('T')[0];
+  if(FERIADOS_SET.has(key)) return false;
+  return true;
+}
+
+function diasHabilesEntre(a, b) {
+  let count = 0;
+  let d = new Date(a);
+  while(d <= b) {
+    if(isHabil(d)) count++;
+    d.setDate(d.getDate()+1);
+  }
+  return count;
+}
+
+const DIAS_FRENO = 3;
+function calcRitmo(contrib, periodoStart, periodoEnd, cutoffHoy) {
+  const habiles=[];
+  let d=new Date(periodoStart); d.setHours(0,0,0,0);
+  const fin=new Date(periodoEnd); fin.setHours(23,59,59,999);
+  while(d<=fin){if(isHabil(d))habiles.push(new Date(d));d.setDate(d.getDate()+1);}
+  if(habiles.length<=DIAS_FRENO){
+    const dias=diasHabilesEntre(periodoStart,cutoffHoy);
+    return dias>0?contrib/dias:0;
+  }
+  const corte=habiles[habiles.length-DIAS_FRENO-1];
+  const cut=cutoffHoy<corte?cutoffHoy:corte;
+  const diasActivos=diasHabilesEntre(periodoStart,cut);
+  return diasActivos>0?contrib/diasActivos:0;
+}
+
+function dateKey(d) {
+  return d.toISOString().split('T')[0];
+}
+
+function fmt(n) {
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  return Math.round(n).toLocaleString('es-CL');
+}
+
+function fmtPct(n) {
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  return Math.round(n) + '%';
+}
+function fmtMargen(n) {
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  return n.toFixed(1) + '%';
+}
+
+function pctClass(p) {
+  if(p >= 100) return 'green';
+  if(p >= 80) return 'gold';
+  return 'red';
+}
+
+function parseDate(str) {
+  if(str===null||str===undefined||str==='') return null;
+  if(typeof str==='number') {
+    const d=new Date((str-25569)*86400*1000);
+    return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+  }
+  const s=str.toString().trim();
+  if(!s) return null;
+  const p=s.split(/[\/\-]/);
+  if(p.length===3){
+    const a=parseInt(p[0]),b=parseInt(p[1]),c=parseInt(p[2]);
+    if(!isNaN(a)&&!isNaN(b)&&!isNaN(c)){
+      if(a>12) return new Date(c,b-1,a);
+      if(c>31) return new Date(c,b-1,a);
+      return new Date(c,b-1,a);
+    }
+  }
+  const d=new Date(s);
+  return isNaN(d.getTime())?null:d;
+}
+
+// ============================================================
+// PRE-LOAD METAS (guardadas de sesión anterior)
+// ============================================================
+(function() {
+  const defaults = {
+    "Enero_Andrés Toledo":2250000,"Enero_Benjamin Diez":16500000,"Enero_Carolina Nicoletti":7500000,"Enero_Empresa":16900000,"Enero_Ignacio del Solar":15000000,"Enero_Manuela Gámez":12000000,"Enero_Ricardo Saldias":12000000,
+    "Febrero_Andrés Toledo":2250000,"Febrero_Benjamin Diez":14400000,"Febrero_Carolina Nicoletti":6400000,"Febrero_Empresa":14000000,"Febrero_Ignacio del Solar":14400000,"Febrero_Manuela Gámez":12000000,"Febrero_Ricardo Saldias":9600000,
+    "Marzo_Andrés Toledo":5250000,"Marzo_Benjamin Diez":14400000,"Marzo_Carolina Nicoletti":8000000,"Marzo_Empresa":22400000,"Marzo_Ignacio del Solar":16000000,"Marzo_Manuela Gámez":12000000,"Marzo_Ricardo Saldias":12000000,
+    "Abril_Andrés Toledo":6000000,"Abril_Benjamin Diez":13000000,"Abril_Carolina Nicoletti":7000000,"Abril_Empresa":24700000,"Abril_Ignacio del Solar":16500000,"Abril_Manuela Gámez":10000000,"Abril_Ricardo Saldias":14000000,
+    "Mayo_Andrés Toledo":7500000,"Mayo_Benjamin Diez":14000000,"Mayo_Carolina Nicoletti":6000000,"Mayo_Empresa":23000000,"Mayo_Ignacio del Solar":16000000,"Mayo_Manuela Gámez":12500000,"Mayo_Ricardo Saldias":12000000
+  };
+  let stored = {};
+  try { stored = JSON.parse(localStorage.getItem('gestapack_metas_2026') || '{}'); } catch(e){}
+  // Merge: stored values win, defaults fill gaps
+  const merged = Object.assign({}, defaults, stored);
+  localStorage.setItem('gestapack_metas_2026', JSON.stringify(merged));
+})();
+let allData = [];
+let mesesMoviles = getMesesMoviles();
+let today = new Date();
+today.setHours(0,0,0,0);
+
+function getMetas() {
+  try { return JSON.parse(localStorage.getItem('gestapack_metas_2026') || '{}'); }
+  catch(e) { return {}; }
+}
+function saveMetas(m) {
+  localStorage.setItem('gestapack_metas_2026', JSON.stringify(m));
+}
+
+// ============================================================
+// TAB LOGIC
+// ============================================================
+function showTab(t) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='metas') renderMetas();
+  if(t==='top') renderTop();
+  if(t==='ranking') renderRanking();
+  if(t==='anio') renderAnio();
+  if(t==='cal') renderCal();
+  if(t==='descargar') renderDescargar();
+  if(t==='recuperacion') renderRecuperacion();
+  if(t==='historico') renderHistorico();
+}
+
+// ============================================================
+// FILE LOAD
+// ============================================================
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const wb = XLSX.read(ev.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if(aoa.length < 2) { alert('Archivo sin datos.'); return; }
+
+      const headers = aoa[0];
+      // Índices fijos basados en el formato del informe Gestapack
+      // Fecha=3, Razón Social=2, Documento=4, Vendedor=11
+      // Producto=13, SKU=14, Cantidad=18, Total Línea=21
+      // Margen Contrib $=26, Margen Contrib %=27
+      const iF=3, iCli=2, iDoc=4, iFolio=5, iVen=11, iProd=13, iSKU=14, iCant=18, iTotal=21, iContrib=26, iMPct=27;
+
+      function toNum(v){
+        if(v===''||v===null||v===undefined) return 0;
+        if(typeof v==='number') return v;
+        const n=parseFloat(v.toString().replace(/[^0-9.,-]/g,'').replace(',','.'));
+        return isNaN(n)?0:n;
+      }
+
+      allData = aoa.slice(1).map(function(row){
+        return {
+          fecha:     parseDate(row[iF]),
+          vendedor:  (row[iVen]||'').toString().trim(),
+          cliente:   (row[iCli]||'').toString().trim(),
+          producto:  (row[iProd]||'').toString().trim(),
+          sku:       (row[iSKU]||'').toString().trim(),
+          cantidad:  toNum(row[iCant]),
+          total:     toNum(row[iTotal]),
+          contrib:   toNum(row[iContrib]),
+          margenPct: toNum(row[iMPct]),
+          documento: (row[iDoc]||'').toString().trim(),
+          folio:     (row[iFolio]||'').toString().trim()
+        };
+      }).filter(function(r){ return r.fecha && !isNaN(r.fecha.getTime()); });
+
+      if(allData.length===0){
+        alert('No se encontraron filas válidas. Verifica que la columna Fecha tenga formato DD/MM/AAAA.');
+        return;
+      }
+
+      document.getElementById('fileLabel').textContent = file.name;
+      document.getElementById('fileLabel').className = 'file-label ok';
+      renderAll();
+    } catch(err) {
+      alert('Error al leer el archivo: ' + err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+});
+
+function getFilteredData(start, end, vendedor=null) {
+  const s = new Date(start); s.setHours(0,0,0,0);
+  const e = new Date(end); e.setHours(23,59,59,999);
+  return allData.filter(r => {
+    if(!r.fecha) return false;
+    const d = new Date(r.fecha); // no mutar el original
+    d.setHours(0,0,0,0);
+    if(d < s || d > e) return false;
+    if(vendedor && r.vendedor !== vendedor) return false;
+    return true;
+  });
+}
+
+function calcKPIs(rows) {
+  const venta = rows.reduce((s,r)=>s+r.total,0);
+  const contrib = rows.reduce((s,r)=>s+r.contrib,0);
+  const kilos = rows.reduce((s,r)=>s+r.cantidad,0);
+  const margenPct = venta!==0 ? (contrib/venta)*100 : 0;
+  const clientes = new Set(rows.map(r=>r.cliente)).size;
+  const skus = new Set(rows.map(r=>r.sku)).size;
+  // Ticket: contrib por documento (boleta/factura, no NC)
+  const docs = {};
+  rows.forEach(r=>{
+    if(r.documento.includes('Nota de Crédito')||r.documento.includes('Nota de Débito')) return;
+    if(!docs[r.vendedor+'_'+r.sku+'_'+r.fecha]) docs[r.vendedor+'_'+r.sku+'_'+r.fecha] = 0;
+    docs[r.vendedor+'_'+r.sku+'_'+r.fecha] += r.total;
+  });
+  // Simple ticket: venta / numero de transacciones únicas por cliente-día
+  const txns = new Set(rows.filter(r=>!r.documento.includes('Nota')).map(r=>r.documento+'_'+r.folio)).size;
+  const ticket = txns > 0 ? venta/txns : 0;
+  const contribKg = kilos !== 0 ? contrib/kilos : 0;
+  return {venta,contrib,kilos,margenPct,clientes,skus,ticket,contribKg,txns};
+}
+
+// ============================================================
+// RENDER ALL
+// ============================================================
+function renderAll() {
+  renderMes();
+  // Other tabs render on demand
+}
+
+// ============================================================
+// TAB MES MOVIL
+// ============================================================
+function getCurrentMes() {
+  for(let m of mesesMoviles) {
+    const s = new Date(m.start); s.setHours(0,0,0,0);
+    const e = new Date(m.end); e.setHours(23,59,59,999);
+    if(today >= s && today <= e) return m;
+  }
+  return mesesMoviles[mesesMoviles.length-1];
+}
+
+function renderMes() {
+  if(allData.length===0) return;
+  document.getElementById('mes-empty').style.display='none';
+  document.getElementById('mes-content').style.display='block';
+
+  const mes = getCurrentMes();
+  const s = new Date(mes.start); s.setHours(0,0,0,0);
+  const e = new Date(mes.end); e.setHours(23,59,59,999);
+
+  // Dias transcurridos y restantes
+  const cutoff = today > e ? e : today;
+  const diasTrans = diasHabilesEntre(s, cutoff);
+  const diasRest = today > e ? 0 : diasHabilesEntre(new Date(today.getTime()+86400000), e);
+  const diasTotal = diasHabilesEntre(s, e);
+
+  document.getElementById('mes-titulo').textContent =
+    mes.nombre + ' Móvil — ' +
+    mes.start.toLocaleDateString('es-CL',{day:'numeric',month:'short',year:'numeric'}) + ' al ' +
+    mes.end.toLocaleDateString('es-CL',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('dias-restantes').textContent = diasRest + ' días hábiles';
+
+  // Mostrar feriados que caen en días restantes
+  const feriadosRest = [];
+  let fd = new Date(today.getTime()+86400000);
+  while(fd <= e) {
+    const key = fd.toISOString().split('T')[0];
+    if(fd.getDay()!==0 && fd.getDay()!==6 && FERIADOS_SET.has(key)) {
+      feriadosRest.push(fd.toLocaleDateString('es-CL',{day:'numeric',month:'short'}));
+    }
+    fd.setDate(fd.getDate()+1);
+  }
+  const ferEl = document.getElementById('feriados-periodo');
+  if(ferEl) ferEl.textContent = feriadosRest.length > 0 ? '(feriados: '+feriadosRest.join(', ')+')' : '';
+
+  // Semanas info
+  const semTxt = mes.semanas.map((sw,i) =>
+    'S'+(i+1)+': '+sw.start.toLocaleDateString('es-CL',{day:'numeric',month:'short'})+
+    ' - '+sw.end.toLocaleDateString('es-CL',{day:'numeric',month:'short'})
+  ).join('  |  ');
+  document.getElementById('mes-semanas').textContent = semTxt;
+
+  const eCut = e < today ? e : new Date(today); eCut.setHours(23,59,59,999);
+  const rows = getFilteredData(s, eCut);
+  const kpis = calcKPIs(rows);
+
+  // Metas
+  const metas = getMetas();
+  const mesKey = mes.nombre;
+  let metaEmpresa = 0;
+  VENDEDORES_ACTIVOS.forEach(v => {
+    metaEmpresa += parseFloat(metas[mesKey+'_'+v]||0);
+  });
+
+  // Proyección empresa (ritmo sin últimos 3 días hábiles)
+  const ritmoActual = calcRitmo(kpis.contrib, s, e, cutoff);
+  const proyEmpresa = kpis.contrib + ritmoActual * diasRest;
+  const cumplProy = metaEmpresa > 0 ? (proyEmpresa/metaEmpresa)*100 : null;
+  // Cumplimiento al día: % de meta total que lleva vendido
+  const cumplVsMeta = metaEmpresa > 0 ? (kpis.contrib/metaEmpresa)*100 : null;
+
+  document.getElementById('proy-empresa').textContent = '$ ' + fmt(proyEmpresa);
+  document.getElementById('proy-meta-empresa').textContent =
+    metaEmpresa > 0
+      ? 'Meta: $'+fmt(metaEmpresa)+(cumplProy!==null?' — Proyec. cumpl: '+fmtPct(cumplProy):'')
+      : 'Sin meta cargada';
+  document.getElementById('cumpl-empresa').textContent =
+    cumplVsMeta !== null ? fmtPct(cumplVsMeta) : 'Sin meta';
+  document.getElementById('cumpl-meta-empresa').textContent =
+    metaEmpresa > 0 ? 'Contrib acumulada vs meta total del mes' : '';
+
+  // KPI cards empresa
+  const kpiEl = document.getElementById('kpi-empresa');
+  kpiEl.innerHTML = '';
+  const kpiData = [
+    {label:'Venta Total',val:'$ '+fmt(kpis.venta)},
+    {label:'Contribución',val:'$ '+fmt(kpis.contrib),gold:true},
+    {label:'Margen %',val:fmtMargen(kpis.margenPct)},
+    {label:'Contrib/Kilo',val:'$ '+fmt(kpis.contribKg)},
+    {label:'Ticket Promedio',val:'$ '+fmt(kpis.ticket)},
+    {label:'Clientes Únicos',val:kpis.clientes},
+    {label:'SKUs Vendidos',val:kpis.skus},
+    {label:'Kilos Totales',val:fmt(kpis.kilos)+' kg'},
+    {label:'Venta Prom. Diaria',val:diasTrans>0?'$ '+fmt(kpis.venta/diasTrans):'—',gold:true,sub:diasTrans+' días hábiles'},
+    {label:'Facturas',val:kpis.txns},
+  ];
+
+  // Venta de hoy
+  const hoyS = new Date(today); hoyS.setHours(0,0,0,0);
+  const hoyE = new Date(today); hoyE.setHours(23,59,59,999);
+  const rowsHoy = allData.filter(r => r.fecha && r.fecha >= hoyS && r.fecha <= hoyE && !r.documento.includes('Nota'));
+  const ventaHoy = rowsHoy.reduce((s,r)=>s+r.total,0);
+  const contribHoy = rowsHoy.reduce((s,r)=>s+r.contrib,0);
+  const facturasHoy = new Set(rowsHoy.map(r=>r.documento+'_'+r.folio)).size;
+  const hoyLabel = today.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'short'});
+  const hoyEl = document.getElementById('kpi-hoy');
+  if(hoyEl) {
+    hoyEl.innerHTML = ventaHoy > 0
+      ? `<div class="kpi-card" style="border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.05);">
+           <div class="kpi-label">Venta Hoy</div>
+           <div class="kpi-value gold">$ ${fmt(ventaHoy)}</div>
+           <div class="kpi-sub">${hoyLabel}</div>
+         </div>
+         <div class="kpi-card" style="border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.05);">
+           <div class="kpi-label">Contribución Hoy</div>
+           <div class="kpi-value gold">$ ${fmt(contribHoy)}</div>
+           <div class="kpi-sub">${facturasHoy} factura${facturasHoy!==1?'s':''}</div>
+         </div>`
+      : `<div class="kpi-card" style="opacity:0.5;">
+           <div class="kpi-label">Venta Hoy</div>
+           <div class="kpi-value">Sin datos aún</div>
+           <div class="kpi-sub">${hoyLabel}</div>
+         </div>`;
+  }
+  kpiData.forEach(k=>{
+    kpiEl.innerHTML += `<div class="kpi-card">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value${k.gold?' gold':''}">${k.val}</div>
+      ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:''}
+    </div>`;
+  });
+
+  // Tabla vendedores
+  const tbody = document.getElementById('tbody-vendedores');
+  tbody.innerHTML = '';
+  let totVenta=0,totContrib=0,totKilos=0,totTxns=0,totClientes=new Set(),totSkus=new Set();
+
+  const vendedoresEnMes = [...new Set(rows.map(r=>r.vendedor))].filter(v=>v && !VENDEDORES_EXCLUIDOS_MES.includes(v));
+  vendedoresEnMes.sort();
+
+  vendedoresEnMes.forEach(v => {
+    const vrows = rows.filter(r=>r.vendedor===v);
+    const k = calcKPIs(vrows);
+    const metaV = parseFloat(metas[mesKey+'_'+v]||0);
+    // Cumplimiento al día: % de la meta total que lleva vendido hasta hoy
+    const cumplV = metaV > 0 ? (k.contrib / metaV) * 100 : null;
+    // Proyección: ritmo actual extrapolado a días restantes → % sobre meta total del mes
+    const ritmoV = calcRitmo(k.contrib, s, e, cutoff);
+    const proyV = k.contrib + ritmoV * diasRest;
+    const proyPctV = metaV > 0 ? (proyV / metaV) * 100 : null;
+
+    totVenta+=k.venta; totContrib+=k.contrib; totKilos+=k.kilos; totTxns+=k.txns;
+    vrows.forEach(r=>{totClientes.add(r.cliente);totSkus.add(r.sku);});
+
+    const cumplTxt = cumplV!==null ?
+      `<div class="pct-bar-wrap">
+        <div class="pct-bar"><div class="pct-bar-fill ${cumplV>=100?'over':cumplV<80?'low':''}" style="width:${Math.min(cumplV,100)}%"></div></div>
+        <span class="pct-txt ${pctClass(cumplV)}">${fmtPct(cumplV)}</span>
+       </div>` : '<span style="color:var(--text3)">Sin meta</span>';
+
+    const proyTxt = metaV > 0 ?
+      `<div style="line-height:1.3">
+        <div style="font-size:0.8rem;font-weight:600" class="pct-txt ${pctClass(proyPctV)}">${fmtPct(proyPctV)}</div>
+        <div style="font-size:0.7rem;color:var(--text2)">$ ${fmt(proyV)}</div>
+       </div>` :
+      `<span style="color:var(--text3)">—</span>`;
+
+    tbody.innerHTML += `<tr>
+      <td>${v}</td>
+      <td>$ ${fmt(k.venta)}</td>
+      <td>$ ${fmt(k.contrib)}</td>
+      <td>${fmtMargen(k.margenPct)}</td>
+      <td>$ ${fmt(k.contribKg)}</td>
+      <td>$ ${fmt(k.ticket)}</td>
+      <td>${k.clientes}</td>
+      <td>${k.skus}</td>
+      <td>${cumplTxt}</td>
+      <td>${proyTxt}</td>
+    </tr>`;
+  });
+
+  // Total row
+  const totalMargen = totVenta!==0?(totContrib/totVenta)*100:0;
+  tbody.innerHTML += `<tr class="tbl-total">
+    <td>TOTAL EMPRESA</td>
+    <td>$ ${fmt(totVenta)}</td>
+    <td>$ ${fmt(totContrib)}</td>
+    <td>${fmtMargen(totalMargen)}</td>
+    <td>—</td><td>—</td>
+    <td>${totClientes.size}</td>
+    <td>${totSkus.size}</td>
+    <td>—</td><td>—</td>
+  </tr>`;
+
+  // Semanas
+  const tbodySem = document.getElementById('tbody-semanas');
+  tbodySem.innerHTML = '';
+
+  // Get active vendedores for this mes
+  const vendedoresSem = [...new Set(rows.map(r=>r.vendedor))].filter(v=>v && !VENDEDORES_EXCLUIDOS_MES.includes(v)).sort();
+
+  mes.semanas.forEach((sw,i) => {
+    const sStart = new Date(sw.start); sStart.setHours(0,0,0,0);
+    const sEnd = new Date(sw.end); sEnd.setHours(23,59,59,999);
+    const srows = getFilteredData(sStart, sEnd);
+    const sk = calcKPIs(srows);
+    const isCurrent = today >= sStart && today <= sEnd;
+    const isClosed = today > sEnd;
+    tbody.style='';
+    const period = sw.start.toLocaleDateString('es-CL',{day:'numeric',month:'short'})+
+      ' — '+sw.end.toLocaleDateString('es-CL',{day:'numeric',month:'short'});
+
+    // Main semana row
+    tbodySem.innerHTML += `<tr${isCurrent?' style="background:rgba(201,168,76,0.05)"':''}>
+      <td style="font-weight:600">Semana ${i+1}${isCurrent?' <span class="chip gold">En curso</span>':''}</td>
+      <td style="text-align:left;color:var(--text2)">${period}</td>
+      <td>$ ${fmt(sk.venta)}</td>
+      <td>$ ${fmt(sk.contrib)}</td>
+      <td>${fmtMargen(sk.margenPct)}</td>
+      <td>${fmt(sk.kilos)} kg</td>
+    </tr>`;
+
+    // Vendedor breakdown only for closed or current weeks
+    if((isClosed || isCurrent) && vendedoresSem.length > 0) {
+      vendedoresSem.forEach(v => {
+        const vrows = getFilteredData(sStart, sEnd, v);
+        if(vrows.length === 0) return;
+        const vk = calcKPIs(vrows);
+        tbodySem.innerHTML += `<tr style="background:rgba(255,255,255,0.02)">
+          <td style="padding-left:28px;font-size:0.75rem;color:var(--text2)">↳ ${v}</td>
+          <td style="text-align:left;color:var(--text3);font-size:0.75rem">&nbsp;</td>
+          <td style="font-size:0.78rem;color:var(--text)">$ ${fmt(vk.venta)}</td>
+          <td style="font-size:0.78rem;color:var(--gold)">$ ${fmt(vk.contrib)}</td>
+          <td style="font-size:0.78rem">${fmtMargen(vk.margenPct)}</td>
+          <td style="font-size:0.78rem;color:var(--text2)">${fmt(vk.kilos)} kg</td>
+        </tr>`;
+      });
+    }
+  });
+}
+
+// ============================================================
+// TAB AÑO MOVIL
+// ============================================================
+function renderAnio() {
+  if(allData.length===0) return;
+  document.getElementById('anio-empty').style.display='none';
+  document.getElementById('anio-content').style.display='block';
+
+  const metas = getMetas();
+  const vendedores = [...new Set(allData.map(r=>r.vendedor))].filter(v=>v && !VENDEDORES_EXCLUIDOS_MES.includes(v)).sort();
+
+  let html = '<table><thead><tr>';
+  html += '<th style="text-align:left">Vendedor</th><th style="text-align:left">Métrica</th>';
+  mesesMoviles.forEach(m=>{
+    html += `<th>${m.nombre}</th>`;
+  });
+  html += '<th>Total Año</th></tr></thead><tbody>';
+
+  vendedores.forEach(v => {
+    const metrics = ['Venta $','Contribución $','Margen %','Cumpl. %','Facturas'];
+    metrics.forEach((metric,mi) => {
+      html += `<tr${mi===0?' style="border-top:2px solid var(--border2)"':''}>`;
+      if(mi===0) html += `<td rowspan="5" style="vertical-align:top;padding-top:12px;font-weight:600;color:var(--gold2);border-right:1px solid var(--border)">${v}</td>`;
+      html += `<td style="color:var(--text2);font-size:0.75rem">${metric}</td>`;
+
+      let anioTotal = 0;
+      mesesMoviles.forEach(mes => {
+        const s = new Date(mes.start); s.setHours(0,0,0,0);
+        const e = new Date(mes.end); e.setHours(23,59,59,999);
+        const isFuture = s > today;
+        if(isFuture) { html += '<td style="color:var(--text3)">—</td>'; return; }
+        const rows = getFilteredData(s,e,v);
+        const k = calcKPIs(rows);
+        const metaV = parseFloat(metas[mes.nombre+'_'+v]||0);
+
+        if(metric==='Venta $') { anioTotal+=k.venta; html+=`<td>$${fmt(k.venta)}</td>`; }
+        else if(metric==='Contribución $') { anioTotal+=k.contrib; html+=`<td>$${fmt(k.contrib)}</td>`; }
+        else if(metric==='Margen %') { html+=`<td>${fmtMargen(k.margenPct)}</td>`; }
+        else if(metric==='Facturas') { anioTotal+=k.txns; html+=`<td style="color:var(--text2)">${k.txns}</td>`; }
+        else if(metric==='Cumpl. %') {
+          if(metaV===0) { html+='<td style="color:var(--text3)">—</td>'; return; }
+          // Full month cumplimiento
+          const s2 = new Date(mes.end); s2.setHours(23,59,59,999);
+          const cutoff2 = today > s2 ? s2 : today;
+          const diasTrans2 = diasHabilesEntre(s,cutoff2);
+          const diasTotal2 = diasHabilesEntre(s,new Date(mes.end));
+          const metaAlDia2 = diasTotal2>0 ? metaV/diasTotal2*diasTrans2 : 0;
+          const pct = metaAlDia2>0 ? (k.contrib/metaV)*100 : null;
+          if(pct===null) { html+='<td>—</td>'; return; }
+          html+=`<td class="pct-txt ${pctClass(pct)}">${fmtPct(pct)}</td>`;
+        }
+      });
+      // Total año
+      if(metric==='Venta $') html+=`<td style="font-weight:700">$${fmt(anioTotal)}</td>`;
+      else if(metric==='Contribución $') html+=`<td style="font-weight:700;color:var(--gold)">$${fmt(anioTotal)}</td>`;
+      else if(metric==='Facturas') html+=`<td style="font-weight:700;color:var(--text2)">${anioTotal}</td>`;
+      else html+='<td>—</td>';
+      html+='</tr>';
+    });
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('tbl-anio-wrap').innerHTML = html;
+}
+
+// ============================================================
+// TAB TOP
+// ============================================================
+function renderTop() {
+  if(allData.length===0) return;
+  document.getElementById('top-empty').style.display='none';
+  document.getElementById('top-content').style.display='block';
+
+  // Populate selector
+  const sel = document.getElementById('top-mes-sel');
+  if(sel.options.length===0) {
+    mesesMoviles.forEach((m,i)=>{
+      const opt = document.createElement('option');
+      opt.value=i; opt.textContent=m.nombre;
+      if(new Date(m.start)<=today && today<=new Date(m.end)) opt.selected=true;
+      sel.appendChild(opt);
+    });
+  }
+
+  const mi = parseInt(sel.value)||0;
+  const mes = mesesMoviles[mi];
+  const s = new Date(mes.start); s.setHours(0,0,0,0);
+  const eRaw = new Date(mes.end); eRaw.setHours(23,59,59,999);
+  const e = eRaw < today ? eRaw : new Date(today); e.setHours(23,59,59,999);
+  const rows = getFilteredData(s,e);
+
+  // Top clientes
+  const clienteMap = {};
+  rows.forEach(r=>{
+    if(!clienteMap[r.cliente]) clienteMap[r.cliente]={contrib:0,prods:{}};
+    clienteMap[r.cliente].contrib+=r.contrib;
+    if(!clienteMap[r.cliente].prods[r.producto]) clienteMap[r.cliente].prods[r.producto]=0;
+    clienteMap[r.cliente].prods[r.producto]+=r.contrib;
+  });
+  const topClientes = Object.entries(clienteMap).sort((a,b)=>b[1].contrib-a[1].contrib).slice(0,10);
+
+  // Top productos
+  const prodMap = {};
+  rows.forEach(r=>{
+    if(!prodMap[r.producto]) prodMap[r.producto]={contrib:0,clientes:{}};
+    prodMap[r.producto].contrib+=r.contrib;
+    if(!prodMap[r.producto].clientes[r.cliente]) prodMap[r.producto].clientes[r.cliente]=0;
+    prodMap[r.producto].clientes[r.cliente]+=r.contrib;
+  });
+  const topProductos = Object.entries(prodMap).sort((a,b)=>b[1].contrib-a[1].contrib).slice(0,10);
+
+  function renderTopList(containerId, items, getDetail, detailLabel) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = '';
+    items.forEach(([name,data],i)=>{
+      const item = document.createElement('div');
+      item.className='top-item';
+      item.innerHTML=`<span class="top-rank">${i+1}</span><span class="top-name" title="${name}">${name}</span><span class="top-val">$ ${fmt(data.contrib)}</span>`;
+      item.onclick=function(){
+        // Toggle detail
+        const existing = el.querySelector('.top-detail[data-idx="'+i+'"]');
+        el.querySelectorAll('.top-detail').forEach(d=>d.remove());
+        el.querySelectorAll('.top-item').forEach(d=>d.classList.remove('active'));
+        if(!existing){
+          item.classList.add('active');
+          const detail = document.createElement('div');
+          detail.className='top-detail';
+          detail.setAttribute('data-idx',i);
+          const sub = getDetail(data);
+          detail.innerHTML='<div style="font-size:0.7rem;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">'+detailLabel+'</div>'+
+            sub.map(([n,v])=>`<div class="top-detail-item"><span>${n}</span><span>$ ${fmt(v)}</span></div>`).join('');
+          item.after(detail);
+        }
+      };
+      el.appendChild(item);
+    });
+  }
+
+  renderTopList('top-clientes-list', topClientes,
+    (data)=>Object.entries(data.prods).sort((a,b)=>b[1]-a[1]).slice(0,10),
+    'Top 10 productos del cliente');
+  renderTopList('top-productos-list', topProductos,
+    (data)=>Object.entries(data.clientes).sort((a,b)=>b[1]-a[1]).slice(0,10),
+    'Top 10 clientes del producto');
+
+  // ---- Clientes con peor margen (<14%) ----
+  const MARGEN_UMBRAL = 15;
+  const cliMargenMap = {};
+  rows.forEach(r => {
+    const cli = r.cliente;
+    if (!cliMargenMap[cli]) cliMargenMap[cli] = { venta:0, contrib:0, vendedor:r.vendedor, prods:{} };
+    cliMargenMap[cli].venta   += r.total || 0;
+    cliMargenMap[cli].contrib += r.contrib;
+    if (!cliMargenMap[cli].prods[r.producto]) cliMargenMap[cli].prods[r.producto] = {venta:0, contrib:0};
+    cliMargenMap[cli].prods[r.producto].venta   += r.total || 0;
+    cliMargenMap[cli].prods[r.producto].contrib += r.contrib;
+  });
+
+  const peorMargen = Object.entries(cliMargenMap)
+    .map(([cli, d]) => ({
+      cli, vendedor: d.vendedor,
+      venta: d.venta, contrib: d.contrib,
+      margenPct: d.venta > 0 ? (d.contrib / d.venta) * 100 : 0,
+      prods: d.prods
+    }))
+    .filter(d => d.margenPct < MARGEN_UMBRAL && d.venta > 0)
+    .sort((a,b) => a.margenPct - b.margenPct);
+
+  // Guardar datos para exportación Excel
+  window._peorMargenData = peorMargen.map(d => ({
+    cli: d.cli,
+    vendedor: d.vendedor,
+    venta: d.venta,
+    contrib: d.contrib,
+    margenPct: d.margenPct,
+    prods: Object.entries(d.prods)
+      .map(([nombre, pd]) => ({
+        nombre,
+        total: pd.venta,
+        contrib: pd.contrib,
+        margenPct: pd.venta > 0 ? (pd.contrib / pd.venta) * 100 : 0
+      }))
+      .sort((a,b) => a.margenPct - b.margenPct)
+  }));
+
+  const tbody = document.getElementById('tbody-peor-margen');
+  tbody.innerHTML = '';
+  if (peorMargen.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:1.5rem;">No hay clientes con margen inferior a '+MARGEN_UMBRAL+'% en este período.</td></tr>';
+  } else {
+    peorMargen.forEach(d => {
+      const pctClass = d.margenPct < 7 ? 'red' : 'gold';
+      const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      tr.innerHTML = `<td style="text-align:left">${d.cli}</td>
+        <td style="text-align:left;color:var(--text2)">${d.vendedor}</td>
+        <td>$ ${fmt(d.venta)}</td>
+        <td>$ ${fmt(d.contrib)}</td>
+        <td><span class="chip ${pctClass}">${d.margenPct.toFixed(1)}%</span></td>`;
+      tr.onclick = function() {
+        // Toggle product detail row
+        const nextRow = tr.nextSibling;
+        if (nextRow && nextRow.classList && nextRow.classList.contains('peor-detail-row')) {
+          nextRow.remove();
+        } else {
+          // Remove any other open detail
+          tbody.querySelectorAll('.peor-detail-row').forEach(r=>r.remove());
+          const detailTr = document.createElement('tr');
+          detailTr.className = 'peor-detail-row';
+          const prodsSorted = Object.entries(d.prods)
+            .map(([prod, pd]) => ({prod, venta:pd.venta, contrib:pd.contrib, margenPct: pd.venta>0?(pd.contrib/pd.venta)*100:0}))
+            .sort((a,b)=>a.margenPct-b.margenPct);
+          const prodsHtml = prodsSorted.map(p=>{
+            const pc = p.margenPct < 7 ? 'red' : (p.margenPct < 15 ? 'gold' : 'green');
+            return `<tr style="background:var(--bg4);">
+              <td style="text-align:left;padding-left:2rem;font-size:0.78rem;color:var(--text2)">↳ ${p.prod}</td>
+              <td></td>
+              <td style="font-size:0.78rem">$ ${fmt(p.venta)}</td>
+              <td style="font-size:0.78rem">$ ${fmt(p.contrib)}</td>
+              <td><span class="chip ${pc}">${p.margenPct.toFixed(1)}%</span></td>
+            </tr>`;
+          }).join('');
+          detailTr.innerHTML = `<td colspan="5" style="padding:0;"><table style="width:100%">${prodsHtml}</table></td>`;
+          tr.after(detailTr);
+        }
+      };
+      tbody.appendChild(tr);
+    });
+  }
+}
+
+// ============================================================
+// TAB RANKING
+// ============================================================
+function renderRanking() {
+  if(allData.length===0) return;
+  document.getElementById('ranking-empty').style.display='none';
+  document.getElementById('ranking-content').style.display='block';
+
+  const metas = getMetas();
+  const mes = getCurrentMes();
+  const s = new Date(mes.start); s.setHours(0,0,0,0);
+  const e = new Date(mes.end); e.setHours(23,59,59,999);
+  const cutoff = today > e ? e : today;
+  const diasTrans = diasHabilesEntre(s, cutoff);
+  const diasRest = today > e ? 0 : diasHabilesEntre(new Date(today.getTime()+86400000), e);
+  const diasTotal = diasHabilesEntre(s, e);
+
+  const rows = getFilteredData(s, e);
+  const vendedores = [...new Set(rows.map(r=>r.vendedor))].filter(v=>v);
+
+  const rankData = vendedores.filter(v=>!VENDEDORES_EXCLUIDOS_MES.includes(v)).map(v=>{
+    const vrows = rows.filter(r=>r.vendedor===v);
+    const k = calcKPIs(vrows);
+    const metaV = parseFloat(metas[mes.nombre+'_'+v]||0);
+    // Cumplimiento al día: % de la meta total que lleva vendido
+    const cumpl = metaV > 0 ? (k.contrib / metaV) * 100 : null;
+    // Proyección: ritmo ajustado (sin últimos 3 días hábiles)
+    const ritmo = calcRitmo(k.contrib, s, e, cutoff);
+    const proy = k.contrib + ritmo * diasRest;
+    const proyPct = metaV > 0 ? (proy / metaV) * 100 : null;
+    return {v, contrib:k.contrib, meta:metaV, cumpl, proy, proyPct};
+  }).sort((a,b)=>(b.cumpl||0)-(a.cumpl||0));
+
+  const tbody = document.getElementById('tbody-ranking-mes');
+  tbody.innerHTML='';
+  const medals=['🥇','🥈','🥉'];
+  rankData.forEach((d,i)=>{
+    const pct = d.cumpl;
+    const bar = pct!==null ? `<div class="pct-bar-wrap">
+      <div class="pct-bar"><div class="pct-bar-fill ${pct>=100?'over':pct<80?'low':''}" style="width:${Math.min(pct,100)}%"></div></div>
+      <span class="pct-txt ${pctClass(pct)}">${fmtPct(pct)}</span></div>` : '<span style="color:var(--text3)">Sin meta</span>';
+    tbody.innerHTML+=`<tr>
+      <td style="text-align:left">${medals[i]||'#'+(i+1)}</td>
+      <td style="text-align:left;font-weight:600">${d.v}</td>
+      <td>$ ${fmt(d.contrib)}</td>
+      <td>${d.meta>0?'$ '+fmt(d.meta):'—'}</td>
+      <td>${bar}</td>
+      <td>${d.proyPct!==null?
+        `<div style="line-height:1.3">
+          <div class="pct-txt ${pctClass(d.proyPct)}">${fmtPct(d.proyPct)}</div>
+          <div style="font-size:0.7rem;color:var(--text2)">$ ${fmt(d.proy)}</div>
+         </div>`
+        :'—'}</td>
+    </tr>`;
+  });
+
+  // Trimestres: Q1=Ene-Mar, Q2=Abr-Jun, Q3=Jul-Sep, Q4=Oct-Dic
+  const trimDef = [
+    {label:'Q1 — Ene a Mar', meses:[0,1,2]},
+    {label:'Q2 — Abr a Jun', meses:[3,4,5]},
+    {label:'Q3 — Jul a Sep', meses:[6,7,8]},
+    {label:'Q4 — Oct a Dic', meses:[9,10,11]},
+  ];
+  const trimGrid = document.getElementById('trim-grid');
+  trimGrid.innerHTML='';
+  const allVendedores = [...new Set(allData.map(r=>r.vendedor))].filter(v=>v && !VENDEDORES_EXCLUIDOS_MES.includes(v));
+
+  trimDef.forEach(trim => {
+    const trimMeses = trim.meses.map(i=>mesesMoviles[i]);
+    const isCurrent = trimMeses.some(m=>new Date(m.start)<=today&&today<=new Date(m.end));
+    const isPast = new Date(trimMeses[trimMeses.length-1].end) < today;
+
+    let winner=null, winnerPct=0, hayMetas=false;
+    allVendedores.forEach(v=>{
+      let totalContrib=0, totalMeta=0;
+      trimMeses.forEach(m=>{
+        const ms=new Date(m.start);ms.setHours(0,0,0,0);
+        const me=new Date(m.end);me.setHours(23,59,59,999);
+        if(ms>today) return;
+        const r=getFilteredData(ms,me,v);
+        totalContrib+=calcKPIs(r).contrib;
+        totalMeta+=parseFloat(metas[m.nombre+'_'+v]||0);
+      });
+      if(totalMeta>0){
+        hayMetas=true;
+        const pct=(totalContrib/totalMeta)*100;
+        if(pct>winnerPct){winnerPct=pct;winner=v;}
+      }
+    });
+
+    let contenido='';
+    if(winner){
+      contenido=`<div class="trim-winner">${winner.split(' ')[0]}</div>
+       <div class="trim-pct">${fmtPct(winnerPct)} cumpl.</div>`;
+    } else if(isCurrent && !hayMetas){
+      contenido=`<div style="color:var(--text3);font-size:0.75rem">Carga metas<br>para ver ganador</div>`;
+    } else if(isPast && !hayMetas){
+      contenido=`<div style="color:var(--text3);font-size:0.75rem">Sin metas<br>cargadas</div>`;
+    } else {
+      contenido=`<div style="color:var(--text3);font-size:0.75rem">En curso...</div>`;
+    }
+
+    trimGrid.innerHTML+=`<div class="trim-card${isCurrent?' current':''}">
+      <div class="trim-label">${trim.label}</div>
+      ${contenido}
+    </div>`;
+  });
+
+  // Historico
+  const allV = [...new Set(allData.map(r=>r.vendedor))].filter(v=>v && !VENDEDORES_EXCLUIDOS_MES.includes(v)).sort();
+  let html='<table><thead><tr><th style="text-align:left">Vendedor</th>';
+  mesesMoviles.forEach(m=>html+=`<th>${m.nombre.substring(0,3)}</th>`);
+  html+='<th>Promedio</th></tr></thead><tbody>';
+
+  allV.forEach(v=>{
+    html+=`<tr><td style="font-weight:500">${v}</td>`;
+    let sum=0, cnt=0;
+    mesesMoviles.forEach(m=>{
+      const ms=new Date(m.start);ms.setHours(0,0,0,0);
+      const me=new Date(m.end);me.setHours(23,59,59,999);
+      // Mes futuro (aún no empezó)
+      if(ms>today){html+='<td style="color:var(--text3)">—</td>';return;}
+      const r=getFilteredData(ms,me,v);
+      const k=calcKPIs(r);
+      const metaV=parseFloat(metas[m.nombre+'_'+v]||0);
+      // Sin meta cargada para este mes
+      if(metaV===0){html+='<td style="color:var(--text3)">—</td>';return;}
+      const pct=(k.contrib/metaV)*100;
+      sum+=pct; cnt++;
+      html+=`<td><span class="pct-txt ${pctClass(pct)}">${fmtPct(pct)}</span></td>`;
+    });
+    const avg=cnt>0?sum/cnt:null;
+    html+=`<td>${avg!==null?'<span class="pct-txt '+pctClass(avg)+'" style="font-weight:700">'+fmtPct(avg)+'</span>':'—'}</td>`;
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('tbl-historico-wrap').innerHTML=html;
+}
+
+// ============================================================
+// TAB METAS
+// ============================================================
+function renderMetas() {
+  const metas = getMetas();
+  const vendedores = allData.length>0 ?
+    [...new Set(allData.map(r=>r.vendedor))].filter(v=>v && !VENDEDORES_EXCLUIDOS_MES.includes(v)).sort() :
+    VENDEDORES_ACTIVOS;
+
+  let html='';
+  mesesMoviles.forEach(mes=>{
+    const mesKey=mes.nombre;
+    let totalMeta=0;
+    vendedores.forEach(v=>totalMeta+=parseFloat(metas[mesKey+'_'+v]||0));
+
+    html+=`<div class="meta-month-block" style="margin-bottom:10px;">
+      <div class="meta-month-hdr" onclick="toggleMetaMes('${mesKey}')">
+        <h3>${mes.nombre} Móvil <span style="font-weight:400;color:var(--text2);font-size:0.72rem">${mes.start.toLocaleDateString('es-CL',{day:'numeric',month:'short'})} — ${mes.end.toLocaleDateString('es-CL',{day:'numeric',month:'short'})}</span></h3>
+        <span class="meta-total">${totalMeta>0?'Meta total: $ '+fmt(totalMeta):'Sin metas'}</span>
+      </div>
+      <div class="meta-body" id="metabody-${mesKey}" style="display:none">`;
+
+    vendedores.forEach(v=>{
+      const val=metas[mesKey+'_'+v]||'';
+      html+=`<div class="meta-row">
+        <span class="meta-vendedor">${v}</span>
+        <input class="meta-input" type="number" id="meta_${mesKey}_${v.replace(/ /g,'_')}"
+          value="${val}" placeholder="0" onchange="autoSaveMeta('${mesKey}','${v}',this.value)">
+      </div>`;
+    });
+
+    html+=`<div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+        <button class="btn-save-meta" onclick="saveMetaMes('${mesKey}')">Guardar ${mes.nombre}</button>
+        <span class="save-msg" id="savemsg-${mesKey}">✓ Guardado</span>
+      </div>
+    </div></div>`;
+  });
+
+  document.getElementById('metas-content').innerHTML=html;
+}
+
+function toggleMetaMes(mesKey) {
+  const body=document.getElementById('metabody-'+mesKey);
+  body.style.display=body.style.display==='none'?'block':'none';
+}
+
+function autoSaveMeta(mesKey, vendedor, value) {
+  const metas=getMetas();
+  const k=mesKey+'_'+vendedor;
+  metas[k]=parseFloat(value)||0;
+  saveMetas(metas);
+}
+
+function saveMetaMes(mesKey) {
+  const metas=getMetas();
+  const vendedores=allData.length>0?
+    [...new Set(allData.map(r=>r.vendedor))].filter(v=>v && !VENDEDORES_EXCLUIDOS_MES.includes(v)).sort():VENDEDORES_ACTIVOS;
+  vendedores.forEach(v=>{
+    const inputId='meta_'+mesKey+'_'+v.replace(/ /g,'_');
+    const el=document.getElementById(inputId);
+    if(el) metas[mesKey+'_'+v]=parseFloat(el.value)||0;
+  });
+  saveMetas(metas);
+  const msg=document.getElementById('savemsg-'+mesKey);
+  msg.classList.add('show');
+  setTimeout(()=>msg.classList.remove('show'),2500);
+  // Re-render current tab to reflect new metas
+  renderMes();
+}
+
+// ============================================================
+// ============================================================
+// TAB RECUPERACIÓN DE CLIENTES
+// ============================================================
+function renderRecuperacion() {
+  if (!allData || !allData.length) return;
+
+  const mes = getCurrentMes();
+  const mesS = new Date(mes.start); mesS.setHours(0,0,0,0);
+  const mesE = new Date(mes.end);   mesE.setHours(23,59,59,999);
+  const mesCut = mesE < today ? mesE : new Date(today); mesCut.setHours(23,59,59,999);
+
+  const mesesHist = mesesMoviles.filter(function(m) {
+    const e = new Date(m.end); e.setHours(23,59,59,999);
+    return e < mesS;
+  }).slice(-3);
+
+  if (mesesHist.length === 0) {
+    ['rec-tbody-sin','rec-tbody-caida','rec-tbody-prod'].forEach(function(id) {
+      document.getElementById(id).innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:1rem">Sin historial suficiente aun.</td></tr>';
+    });
+    return;
+  }
+
+  const sel = document.getElementById('rec-vendedor-sel');
+  const selVal = sel.value;
+  if (sel.options.length === 1) {
+    VENDEDORES_REPORTE.forEach(function(v) {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    });
+    sel.value = selVal;
+  }
+  const filtroVendedor = sel.value;
+  const filtroTipo = document.getElementById('rec-tipo-sel').value;
+
+  // Datos mes en curso
+  const curMap = {};
+  allData.filter(function(r) {
+    return r.fecha && r.fecha >= mesS && r.fecha <= mesCut && (!filtroVendedor || r.vendedor === filtroVendedor);
+  }).forEach(function(r) {
+    if (!curMap[r.cliente]) curMap[r.cliente] = {venta:0, contrib:0, vendedor:r.vendedor, prods:{}};
+    curMap[r.cliente].venta   += r.total;
+    curMap[r.cliente].contrib += r.contrib;
+    curMap[r.cliente].prods[r.producto] = true;
+  });
+
+  // Datos historicos 3 meses
+  const histMap = {};
+  mesesHist.forEach(function(m) {
+    const hS = new Date(m.start); hS.setHours(0,0,0,0);
+    const hE = new Date(m.end);   hE.setHours(23,59,59,999);
+    allData.filter(function(r) {
+      return r.fecha && r.fecha >= hS && r.fecha <= hE && (!filtroVendedor || r.vendedor === filtroVendedor);
+    }).forEach(function(r) {
+      if (!histMap[r.cliente]) histMap[r.cliente] = {vendedor: r.vendedor, meses:{}};
+      if (!histMap[r.cliente].meses[m.nombre]) histMap[r.cliente].meses[m.nombre] = {venta:0, prods:{}};
+      histMap[r.cliente].meses[m.nombre].venta  += r.total;
+      histMap[r.cliente].meses[m.nombre].contrib = (histMap[r.cliente].meses[m.nombre].contrib||0) + r.contrib;
+      histMap[r.cliente].meses[m.nombre].prods[r.producto] = true;
+      histMap[r.cliente].vendedor = r.vendedor;
+    });
+  });
+
+  const fmt2 = function(n) { return Math.round(n).toLocaleString('es-CL'); };
+
+  // 1. Sin compra este mes
+  const sinCompra = [];
+  Object.keys(histMap).forEach(function(cli) {
+    if (curMap[cli]) return;
+    const h = histMap[cli];
+    const mesesActivos = mesesHist.filter(function(m) { return h.meses[m.nombre] && h.meses[m.nombre].venta > 0; });
+    if (mesesActivos.length === 0) return;
+    const totalVenta = mesesHist.reduce(function(s,m) { return s + (h.meses[m.nombre] ? h.meses[m.nombre].venta : 0); }, 0);
+    const promedio = totalVenta / mesesHist.length;
+    const ultimoMes = mesesHist.slice().reverse().find(function(m) { return h.meses[m.nombre] && h.meses[m.nombre].venta > 0; });
+    const idxUltimo = ultimoMes ? mesesHist.findIndex(function(m) { return m.nombre === ultimoMes.nombre; }) : -1;
+    const mesesSin = idxUltimo >= 0 ? (mesesHist.length - 1 - idxUltimo) + 1 : mesesHist.length + 1;
+    // Solo clientes que en algun mes tuvieron contrib > $300.000
+    const maxContrib = mesesHist.reduce(function(mx,m) {
+      return Math.max(mx, h.meses[m.nombre] ? (h.meses[m.nombre].contrib||0) : 0);
+    }, 0);
+    if (maxContrib < 300000) return;
+    sinCompra.push({ cli: cli, vendedor: h.vendedor, promedio: promedio, ultimoMes: ultimoMes ? ultimoMes.nombre : '-', mesesSin: mesesSin });
+  });
+  sinCompra.sort(function(a,b) { return a.mesesSin - b.mesesSin; }); // menor tiempo sin compra primero
+
+  // 2. Caida fuerte (<30%)
+  const caida = [];
+  Object.keys(histMap).forEach(function(cli) {
+    if (!curMap[cli]) return;
+    const h = histMap[cli];
+    const totalVenta = mesesHist.reduce(function(s,m) { return s + (h.meses[m.nombre] ? h.meses[m.nombre].venta : 0); }, 0);
+    const mesesConVenta = mesesHist.filter(function(m) { return h.meses[m.nombre] && h.meses[m.nombre].venta > 0; }).length;
+    if (mesesConVenta === 0) return;
+    const promedio = totalVenta / mesesHist.length;
+    const actual = curMap[cli].venta;
+    const pct = promedio > 0 ? (actual / promedio) * 100 : 100;
+    if (pct < 30) caida.push({ cli: cli, vendedor: curMap[cli].vendedor || h.vendedor, promedio: promedio, actual: actual, pct: pct });
+  });
+  caida.sort(function(a,b) { return a.pct - b.pct; });
+
+  // Top 20 productos por contribucion del año movil completo (empresa, sin filtro vendedor)
+  const top20ProdMap = {};
+  const anioS = new Date(mesesMoviles[0].start); anioS.setHours(0,0,0,0);
+  const anioE = new Date(mesesMoviles[mesesMoviles.length-1].end); anioE.setHours(23,59,59,999);
+  allData.filter(function(r) { return r.fecha && r.fecha >= anioS && r.fecha <= anioE; }).forEach(function(r) {
+    top20ProdMap[r.producto] = (top20ProdMap[r.producto]||0) + r.contrib;
+  });
+  const top20Prods = Object.keys(top20ProdMap).sort(function(a,b) { return top20ProdMap[b]-top20ProdMap[a]; }).slice(0,20);
+  const top20Set = {};
+  top20Prods.forEach(function(p) { top20Set[p] = true; });
+
+  // 3. Productos perdidos (comprado >=2 de 3 meses hist, ausente este mes, solo top 20 empresa)
+  const prodPerdidos = [];
+  Object.keys(histMap).forEach(function(cli) {
+    const h = histMap[cli];
+    const prodFreq = {};
+    mesesHist.forEach(function(m) {
+      if (h.meses[m.nombre]) {
+        Object.keys(h.meses[m.nombre].prods).forEach(function(p) {
+          if (top20Set[p]) prodFreq[p] = (prodFreq[p]||0) + 1;
+        });
+      }
+    });
+    const prodsRecurrentes = Object.keys(prodFreq).filter(function(p) { return prodFreq[p] >= 2; });
+    if (!prodsRecurrentes.length) return;
+    const prodsActuales = curMap[cli] ? curMap[cli].prods : {};
+    prodsRecurrentes.forEach(function(prod) {
+      if (prodsActuales[prod]) return;
+      var ventaProd = 0, mesesConProd = 0;
+      mesesHist.forEach(function(m) {
+        if (h.meses[m.nombre] && h.meses[m.nombre].prods[prod]) {
+          const hS = new Date(m.start); hS.setHours(0,0,0,0);
+          const hE = new Date(m.end);   hE.setHours(23,59,59,999);
+          const vp = allData.filter(function(r) {
+            return r.fecha >= hS && r.fecha <= hE && r.cliente === cli && r.producto === prod && (!filtroVendedor || r.vendedor === filtroVendedor);
+          }).reduce(function(s,r) { return s+r.total; }, 0);
+          ventaProd += vp; mesesConProd++;
+        }
+      });
+      const promProd = mesesConProd > 0 ? ventaProd / mesesConProd : 0;
+      prodPerdidos.push({ cli: cli, vendedor: curMap[cli] ? curMap[cli].vendedor : h.vendedor, prod: prod, freq: prodFreq[prod], promProd: promProd });
+    });
+  });
+  prodPerdidos.sort(function(a,b) { return b.promProd - a.promProd; });
+
+  window._recData = { sinCompra: sinCompra, caida: caida, prodPerdidos: prodPerdidos };
+
+  // Pills resumen
+  const pills = document.getElementById('rec-pills');
+  pills.innerHTML =
+    '<div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:5px 14px;font-size:0.78rem;color:#ef4444;font-weight:600;">' +
+      '\uD83D\uDD34 ' + sinCompra.length + ' sin compra</div>' +
+    '<div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:20px;padding:5px 14px;font-size:0.78rem;color:#f59e0b;font-weight:600;">' +
+      '\uD83D\uDFE1 ' + caida.length + ' con caida fuerte</div>' +
+    '<div style="background:rgba(154,144,128,0.12);border:1px solid rgba(154,144,128,0.3);border-radius:20px;padding:5px 14px;font-size:0.78rem;color:#9a9080;font-weight:600;">' +
+      '\uD83D\uDCE6 ' + prodPerdidos.length + ' productos perdidos</div>' +
+    '<div style="font-size:0.72rem;color:var(--text2);align-self:center;">Base: ' + mesesHist.map(function(m){return m.nombre;}).join(', ') + '</div>';
+
+  const mostrar = function(tipo) { return !filtroTipo || filtroTipo === tipo; };
+  document.getElementById('rec-sin-compra-block').style.display = mostrar('sin_compra') ? '' : 'none';
+  document.getElementById('rec-caida-block').style.display     = mostrar('caida')      ? '' : 'none';
+  document.getElementById('rec-prod-block').style.display      = mostrar('producto')   ? '' : 'none';
+
+  const tbody1 = document.getElementById('rec-tbody-sin');
+  tbody1.innerHTML = sinCompra.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:1rem">Todos los clientes han comprado este mes.</td></tr>'
+    : sinCompra.map(function(d) {
+        return '<tr>' +
+          '<td style="text-align:left;font-weight:500">' + d.cli + '</td>' +
+          '<td style="text-align:left;color:var(--text2);font-size:0.8rem">' + d.vendedor + '</td>' +
+          '<td>$ ' + fmt2(d.promedio) + '</td>' +
+          '<td style="color:var(--text2)">' + d.ultimoMes + '</td>' +
+          '<td><span class="chip red">' + d.mesesSin + ' mes' + (d.mesesSin>1?'es':'') + '</span></td>' +
+        '</tr>';
+      }).join('');
+
+  const tbody2 = document.getElementById('rec-tbody-caida');
+  tbody2.innerHTML = caida.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:1rem">Sin caidas fuertes este mes.</td></tr>'
+    : caida.map(function(d) {
+        return '<tr>' +
+          '<td style="text-align:left;font-weight:500">' + d.cli + '</td>' +
+          '<td style="text-align:left;color:var(--text2);font-size:0.8rem">' + d.vendedor + '</td>' +
+          '<td>$ ' + fmt2(d.promedio) + '</td>' +
+          '<td>$ ' + fmt2(d.actual) + '</td>' +
+          '<td><span class="chip red">' + d.pct.toFixed(0) + '% del prom.</span></td>' +
+        '</tr>';
+      }).join('');
+
+  const tbody3 = document.getElementById('rec-tbody-prod');
+  tbody3.innerHTML = prodPerdidos.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:1rem">Sin productos perdidos detectados.</td></tr>'
+    : prodPerdidos.map(function(d) {
+        return '<tr>' +
+          '<td style="text-align:left;font-weight:500">' + d.cli + '</td>' +
+          '<td style="text-align:left;color:var(--text2);font-size:0.8rem">' + d.vendedor + '</td>' +
+          '<td style="text-align:left;color:var(--gold)">' + d.prod + '</td>' +
+          '<td style="text-align:center">' + d.freq + '/3 meses</td>' +
+          '<td>$ ' + fmt2(d.promProd) + '</td>' +
+        '</tr>';
+      }).join('');
+}
+
+function exportarRecuperacionXLSX() {
+  const data = window._recData;
+  if (!data) { alert('Carga el Excel primero.'); return; }
+  const wb = XLSX.utils.book_new();
+  const fecha = new Date().toLocaleDateString('es-CL').replace(/\//g,'-');
+
+  const s1 = [['SIN COMPRA ESTE MES'],['Cliente','Vendedor','Promedio Mensual 3M $','Ultimo Mes Activo','Meses Sin Compra']];
+  data.sinCompra.forEach(function(d) { s1.push([d.cli, d.vendedor, Math.round(d.promedio), d.ultimoMes, d.mesesSin]); });
+  const ws1 = XLSX.utils.aoa_to_sheet(s1);
+  ws1['!cols'] = [{wch:45},{wch:22},{wch:22},{wch:20},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Sin Compra');
+
+  const s2 = [['CAIDA FUERTE (<30% DEL PROMEDIO)'],['Cliente','Vendedor','Promedio 3M $','Este Mes $','% del Promedio']];
+  data.caida.forEach(function(d) { s2.push([d.cli, d.vendedor, Math.round(d.promedio), Math.round(d.actual), parseFloat(d.pct.toFixed(1))]); });
+  const ws2 = XLSX.utils.aoa_to_sheet(s2);
+  ws2['!cols'] = [{wch:45},{wch:22},{wch:18},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Caida Fuerte');
+
+  const s3 = [['CLIENTES QUE DEJARON UN PRODUCTO'],['Cliente','Vendedor','Producto Perdido','Frecuencia 3M','Promedio Venta Producto $']];
+  data.prodPerdidos.forEach(function(d) { s3.push([d.cli, d.vendedor, d.prod, d.freq+'/3', Math.round(d.promProd)]); });
+  const ws3 = XLSX.utils.aoa_to_sheet(s3);
+  ws3['!cols'] = [{wch:45},{wch:22},{wch:40},{wch:14},{wch:24}];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Productos Perdidos');
+
+  XLSX.writeFile(wb, 'Recuperacion_Clientes_' + fecha + '.xlsx');
+}
+
+// TAB DESCARGAR REPORTES
+// ============================================================
+const VENDEDORES_REPORTE = [
+  'Andrés Toledo','Benjamin Diez','Carolina Nicoletti',
+  'Ignacio del Solar','Manuela Gámez','Ricardo Saldias',
+  'Empresa'
+];
+
+function renderDescargar() {
+  if(allData.length===0) return;
+  document.getElementById('descargar-empty').style.display='none';
+  document.getElementById('descargar-content').style.display='block';
+
+  const lista = document.getElementById('descargar-lista');
+  let html = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;">`;
+
+  VENDEDORES_REPORTE.forEach(v => {
+    const initials = v.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    html += `<div class="meta-month-block">
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:14px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gold3),var(--gold));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;color:#0d0d0d;flex-shrink:0;">${initials}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:0.9rem;margin-bottom:8px;">${v}</div>
+          <input class="meta-input" type="password" id="pwd_${v.replace(/ /g,'_')}"
+            placeholder="Contraseña del vendedor" style="width:100%;">
+        </div>
+        <button class="btn-save-meta" onclick="generarReporte('${v}')"
+          style="white-space:nowrap;padding:8px 14px;">
+          ⬇ Descargar
+        </button>
+      </div>
+    </div>`;
+  });
+
+  html += `</div>
+  <div style="margin-top:1rem;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);font-size:0.75rem;color:var(--text2);">
+    <strong style="color:var(--gold);">¿Cómo funciona?</strong><br>
+    Ingresa una contraseña para el vendedor, haz clic en Descargar y envíale el archivo HTML. 
+    Al abrirlo en su navegador, deberá ingresar esa contraseña para ver su información.
+  </div>`;
+
+  lista.innerHTML = html;
+}
+
+function generarReporte(vendedor) {
+  const pwdId = 'pwd_' + vendedor.replace(/ /g,'_');
+  const pwd = document.getElementById(pwdId).value.trim();
+  if(!pwd) { alert('Ingresa una contraseña para ' + vendedor); return; }
+
+  const metas = getMetas();
+  const mes = getCurrentMes();
+
+  // Calcular datos del vendedor
+  function getDataMes(m) {
+    const s = new Date(m.start); s.setHours(0,0,0,0);
+    const e = new Date(m.end); e.setHours(23,59,59,999);
+    // Cortar en today para mes en curso — no mezclar datos futuros
+    const eCut = e < today ? e : new Date(today); eCut.setHours(23,59,59,999);
+    const rows = getFilteredData(s, eCut, vendedor);
+    const k = calcKPIs(rows);
+    const metaV = parseFloat(metas[m.nombre+'_'+vendedor]||0);
+    const cut = today > e ? e : today;
+    const dTrans = diasHabilesEntre(s, cut);
+    const dRest = today > e ? 0 : diasHabilesEntre(new Date(today.getTime()+86400000), e);
+    const dTotal = diasHabilesEntre(s, e);
+    const cumpl = metaV > 0 ? (k.contrib/metaV)*100 : null;
+    const ritmo = calcRitmo(k.contrib, s, e, cut);
+    const proy = k.contrib + ritmo*dRest;
+    const proyPct = metaV > 0 ? (proy/metaV)*100 : null;
+
+    // Top clientes y productos
+    const clienteMap = {}, prodMap = {};
+    rows.forEach(r => {
+      if(!clienteMap[r.cliente]) clienteMap[r.cliente]=0;
+      clienteMap[r.cliente]+=r.contrib;
+      if(!prodMap[r.producto]) prodMap[r.producto]=0;
+      prodMap[r.producto]+=r.contrib;
+    });
+    const topClientes = Object.entries(clienteMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const topProductos = Object.entries(prodMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+    return {k, metaV, dTrans, dRest, dTotal, cumpl, proy, proyPct, topClientes, topProductos,
+            isFuture: s > today, isCurrent: s <= today && today <= e};
+  }
+
+  // Ranking mes actual
+  const rankVendedores = VENDEDORES_REPORTE.map(v2 => {
+    const s = new Date(mes.start); s.setHours(0,0,0,0);
+    const e = new Date(mes.end); e.setHours(23,59,59,999);
+    const eCutR = e < today ? e : new Date(today); eCutR.setHours(23,59,59,999);
+    const rows = getFilteredData(s,eCutR,v2);
+    const k = calcKPIs(rows);
+    const metaV2 = parseFloat(metas[mes.nombre+'_'+v2]||0);
+    const dTrans = diasHabilesEntre(s, today > e ? e : today);
+    const dTotal = diasHabilesEntre(s,e);
+    const cumpl = metaV2 > 0 ? (k.contrib/metaV2)*100 : null;
+    return {nombre:v2, contrib:k.contrib, meta:metaV2, cumpl};
+  }).sort((a,b)=>(b.cumpl||0)-(a.cumpl||0));
+
+  const miPosicion = rankVendedores.findIndex(r=>r.nombre===vendedor)+1;
+
+  // Datos año móvil (meses cerrados)
+  const mesesCerrados = mesesMoviles.filter(m => {
+    const e = new Date(m.end); e.setHours(23,59,59,999);
+    return e < today;
+  });
+
+  const datosMes = getDataMes(mes);
+  const fmtR = n => n===null||n===undefined||isNaN(n)?'—':Math.round(n).toLocaleString('es-CL');
+  const fmtP = n => n===null||n===undefined||isNaN(n)?'—':Math.round(n)+'%';
+  const fmtM = n => n===null||n===undefined||isNaN(n)?'—':n.toFixed(1)+'%';
+  const pClass = p => p>=100?'#22c55e':p>=80?'#c9a84c':'#ef4444';
+  const pwdHash = btoa(unescape(encodeURIComponent(pwd + '_gestapack2026')));
+  const nombreCorto = vendedor.split(' ')[0];
+
+  // Build KPI cards HTML
+  const kpiCards = (k, metaV, cumpl, proy, proyPct) => `
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Venta Total</div><div class="kpi-value">$ ${fmtR(k.venta)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Contribución</div><div class="kpi-value gold">$ ${fmtR(k.contrib)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Margen %</div><div class="kpi-value">${fmtM(k.margenPct)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Contrib/Kilo</div><div class="kpi-value">$ ${fmtR(k.contribKg)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Ticket Promedio</div><div class="kpi-value">$ ${fmtR(k.ticket)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Clientes Únicos</div><div class="kpi-value">${k.clientes}</div></div>
+      <div class="kpi-card"><div class="kpi-label">SKUs Vendidos</div><div class="kpi-value">${k.skus}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Kilos</div><div class="kpi-value">${fmtR(k.kilos)} kg</div></div>
+      ${metaV>0?`<div class="kpi-card"><div class="kpi-label">Meta Contribución</div><div class="kpi-value">$ ${fmtR(metaV)}</div></div>`:''}
+      ${cumpl!==null?`<div class="kpi-card"><div class="kpi-label">Cumpl. al día</div><div class="kpi-value" style="color:${pClass(cumpl)}">${fmtP(cumpl)}</div></div>`:''}
+      ${proyPct!==null?`<div class="kpi-card"><div class="kpi-label">Proyección cierre</div><div class="kpi-value" style="color:${pClass(proyPct)}">${fmtP(proyPct)}<div style="font-size:0.7rem;color:#9a9080;font-weight:400">$ ${fmtR(proy)}</div></div></div>`:''}
+    </div>`;
+
+  // Año móvil table — filas clickeables con KPIs desplegables
+  // Incluir todos los meses iniciados (cerrados + en curso)
+  const mesesIniciados = mesesMoviles.filter(m => new Date(m.start) <= today);
+  let anioRows = '';
+  mesesIniciados.forEach((m, i) => {
+    const d = getDataMes(m);
+    const esCurso = new Date(m.start) <= today && today <= new Date(m.end);
+    anioRows += `<tr class="mes-row" onclick="toggleMesKpi('mes_${i}')" style="cursor:pointer;${esCurso?'background:rgba(201,168,76,0.05);':''}">
+      <td style="font-weight:500;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:0.65rem;color:#5a5248;transition:transform 0.2s;" id="arrow_mes_${i}">▶</span>
+        ${m.nombre}${esCurso?' <span style="font-size:0.62rem;background:rgba(201,168,76,0.15);color:#c9a84c;padding:1px 6px;border-radius:10px;font-weight:600">En curso</span>':''}
+      </td>
+      <td>$ ${fmtR(d.k.venta)}</td>
+      <td>$ ${fmtR(d.k.contrib)}</td>
+      <td>${fmtM(d.k.margenPct)}</td>
+      <td>$ ${fmtR(d.k.contribKg)}</td>
+      <td style="color:var(--text2)">${d.k.txns}</td>
+      <td>${d.k.clientes}</td>
+      <td>${d.k.skus}</td>
+      <td>${d.metaV>0?'$ '+fmtR(d.metaV):'—'}</td>
+      <td style="color:${d.cumpl!==null?pClass(d.cumpl):'#5a5248'}">${fmtP(d.cumpl)}</td>
+    </tr>
+    <tr id="mes_${i}" style="display:none;background:rgba(0,0,0,0.3);">
+      <td colspan="10" style="padding:0;">
+        <div style="padding:14px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+          <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.65rem;color:#9a9080;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Venta</div>
+            <div style="font-size:1rem;font-weight:700;">$ ${fmtR(d.k.venta)}</div>
+          </div>
+          <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.65rem;color:#9a9080;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Contribución</div>
+            <div style="font-size:1rem;font-weight:700;color:#c9a84c;">$ ${fmtR(d.k.contrib)}</div>
+          </div>
+          <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.65rem;color:#9a9080;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Contrib/Kilo</div>
+            <div style="font-size:1rem;font-weight:700;">$ ${fmtR(d.k.contribKg)}</div>
+          </div>
+          <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.65rem;color:#9a9080;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Ticket Promedio</div>
+            <div style="font-size:1rem;font-weight:700;">$ ${fmtR(d.k.ticket)}</div>
+          </div>
+          <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.65rem;color:#9a9080;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Clientes Únicos</div>
+            <div style="font-size:1rem;font-weight:700;">${d.k.clientes}</div>
+          </div>
+          <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.65rem;color:#9a9080;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">SKUs Trabajados</div>
+            <div style="font-size:1rem;font-weight:700;">${d.k.skus}</div>
+          </div>
+        </div>
+      </td>
+    </tr>`; 
+  });
+
+  // Fila promedio cumplimiento meses cerrados
+  const mesesCerradosConMeta = mesesIniciados.filter(m => {
+    const d = getDataMes(m);
+    const esCurso = new Date(m.start) <= today && today <= new Date(m.end);
+    return !esCurso && d.cumpl !== null;
+  });
+  if (mesesCerradosConMeta.length > 0) {
+    const cumplValues = mesesCerradosConMeta.map(m => getDataMes(m).cumpl);
+    const promCumpl = cumplValues.reduce((a,b)=>a+b,0) / cumplValues.length;
+    anioRows += `<tr class="tbl-total">
+      <td style="text-align:left;color:var(--text2);font-size:0.78rem;font-weight:600;letter-spacing:0.3px;">PROMEDIO MESES CERRADOS</td>
+      <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+      <td style="color:${pClass(promCumpl)};font-size:1rem;">${fmtP(promCumpl)}</td>
+    </tr>`;
+  }
+
+  // Ranking table
+  const medals = ['🥇','🥈','🥉'];
+  let rankRows = rankVendedores.map((r,i) => `
+    <tr style="${r.nombre===vendedor?'background:rgba(201,168,76,0.08);':''}">
+      <td style="text-align:left">${medals[i]||'#'+(i+1)}</td>
+      <td style="text-align:left;font-weight:${r.nombre===vendedor?'700':'400'};color:${r.nombre===vendedor?'#e8c97a':'inherit'}">${r.nombre===vendedor?'► '+r.nombre.split(' ')[0]:r.nombre.split(' ')[0]}</td>
+      <td>$ ${fmtR(r.contrib)}</td>
+      <td>${r.meta>0?'$ '+fmtR(r.meta):'—'}</td>
+      <td style="color:${r.cumpl!==null?pClass(r.cumpl):'#5a5248'};font-weight:600">${fmtP(r.cumpl)}</td>
+    </tr>`).join('');
+
+  // Histórico ranking
+  let rankHistRows = '';
+  mesesCerrados.forEach(m => {
+    const rankMes = VENDEDORES_REPORTE.map(v2 => {
+      const s2=new Date(m.start);s2.setHours(0,0,0,0);
+      const e2=new Date(m.end);e2.setHours(23,59,59,999);
+      const rows=getFilteredData(s2,e2,v2);
+      const k2=calcKPIs(rows);
+      const mv=parseFloat(metas[m.nombre+'_'+v2]||0);
+      const c=mv>0?(k2.contrib/mv)*100:null;
+      return {nombre:v2,cumpl:c};
+    }).sort((a,b)=>(b.cumpl||0)-(a.cumpl||0));
+    const pos = rankMes.findIndex(r=>r.nombre===vendedor)+1;
+    const cumplMes = rankMes.find(r=>r.nombre===vendedor)?.cumpl;
+    rankHistRows += `<tr>
+      <td style="font-weight:500">${m.nombre}</td>
+      <td>${medals[pos-1]||'#'+pos} de ${rankVendedores.length}</td>
+      <td style="color:${cumplMes!==null?pClass(cumplMes):'#5a5248'};font-weight:600">${fmtP(cumplMes)}</td>
+    </tr>`;
+  });
+
+  // Top interactivo con drill-down
+  const topInteractivo = (items, detalleMap, detalleLabel, idPrefix) => {
+    return items.map(([name, val], i) => {
+      const subItems = Object.entries(detalleMap[name]||{})
+        .sort((a,b)=>b[1]-a[1]).slice(0, idPrefix==='cli'?3:5);
+      const subHTML = subItems.map(([n,v])=>
+        `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.75rem;color:#9a9080;border-top:1px solid rgba(201,168,76,0.06);">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%">${n}</span>
+          <span style="color:#e8e4d9;font-weight:500">$ ${fmtR(v)}</span>
+        </div>`
+      ).join('');
+      return `<div class="top-item" onclick="toggleDetail('${idPrefix}_${i}')">
+        <span style="font-size:0.7rem;font-weight:700;color:#5a5248;min-width:18px">${i+1}</span>
+        <span style="flex:1;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${name}">${name}</span>
+        <span style="font-size:0.82rem;font-weight:600;color:#c9a84c;white-space:nowrap">$ ${fmtR(val)}</span>
+        <span style="font-size:0.7rem;color:#5a5248;margin-left:6px">▶</span>
+      </div>
+      <div class="top-detail" id="detail_${idPrefix}_${i}" style="display:none">
+        <div style="font-size:0.68rem;color:#5a5248;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">${detalleLabel}</div>
+        ${subHTML}
+      </div>`;
+    }).join('');
+  };
+
+  // Mapas de detalle
+  const cliProdMap = {}, prodCliMap = {};
+  const mesRows = getFilteredData(new Date(mes.start).setHours(0,0,0,0)>0?new Date(mes.start):mes.start, mes.end, vendedor);
+  allData.filter(r => {
+    const d = r.fecha; if(!d) return false;
+    const s = new Date(mes.start); s.setHours(0,0,0,0);
+    const e = new Date(mes.end); e.setHours(23,59,59,999);
+    return d >= s && d <= e && r.vendedor === vendedor;
+  }).forEach(r => {
+    if(!cliProdMap[r.cliente]) cliProdMap[r.cliente] = {};
+    if(!cliProdMap[r.cliente][r.producto]) cliProdMap[r.cliente][r.producto] = 0;
+    cliProdMap[r.cliente][r.producto] += r.contrib;
+    if(!prodCliMap[r.producto]) prodCliMap[r.producto] = {};
+    if(!prodCliMap[r.producto][r.cliente]) prodCliMap[r.producto][r.cliente] = 0;
+    prodCliMap[r.producto][r.cliente] += r.contrib;
+  });
+
+  // ── Top 10 productos empresa — mes en curso ──
+  const mesS = new Date(mes.start); mesS.setHours(0,0,0,0);
+  const mesECut = new Date(mes.end); mesECut.setHours(23,59,59,999);
+  const mesCut = mesECut < today ? mesECut : new Date(today); mesCut.setHours(23,59,59,999);
+
+  const empProdMap = {};
+  allData.filter(r => r.fecha && r.fecha >= mesS && r.fecha <= mesCut).forEach(r => {
+    if (!empProdMap[r.producto]) empProdMap[r.producto] = {contrib:0, venta:0};
+    empProdMap[r.producto].contrib += r.contrib;
+    empProdMap[r.producto].venta   += r.total;
+  });
+  const top10Empresa = Object.entries(empProdMap)
+    .sort((a,b) => b[1].contrib - a[1].contrib)
+    .slice(0, 10);
+
+  const colorMg2 = p => p < 10 ? '#ef4444' : p < 15 ? '#f59e0b' : '#4caf7d';
+  const empMedals = ['🥇','🥈','🥉'];
+
+  const compRows = top10Empresa.length === 0
+    ? `<tr><td colspan="4" style="text-align:center;color:#5a5248;padding:1.5rem">Sin datos para el mes en curso.</td></tr>`
+    : top10Empresa.map(([prod, d], i) => {
+        const mg = d.venta > 0 ? (d.contrib / d.venta) * 100 : 0;
+        return `<tr>
+          <td style="text-align:left;font-weight:700;font-size:0.9rem">${empMedals[i] || '#'+(i+1)}</td>
+          <td style="text-align:left">${prod}</td>
+          <td style="color:#c9a84c;font-weight:600">$ ${fmtR(d.contrib)}</td>
+          <td style="color:${colorMg2(mg)};font-weight:600">${mg.toFixed(1)}%</td>
+        </tr>`;
+      }).join('');
+
+
+
+
+  // ── Semanas del mes móvil en curso ──
+  let semanasHTML = '';
+  (mes.semanas||[]).forEach((sw,i)=>{
+    const swS=new Date(sw.start);swS.setHours(0,0,0,0);
+    const swE=new Date(sw.end);swE.setHours(23,59,59,999);
+    const swR=allData.filter(r=>r.fecha&&r.fecha>=swS&&r.fecha<=swE&&r.vendedor===vendedor);
+    const swK=calcKPIs(swR);
+    const enCurso=swS<=today&&today<=swE;
+    const esFuturo=swS>today;
+    const periodo=swS.toLocaleDateString('es-CL',{day:'numeric',month:'short'})+' – '+swE.toLocaleDateString('es-CL',{day:'numeric',month:'short'});
+    semanasHTML+=`<tr style="${enCurso?'background:rgba(201,168,76,0.07);':esFuturo?'opacity:0.4;':''}">
+      <td style="font-weight:${enCurso?'600':'400'};color:${enCurso?'#e8c97a':'inherit'}">Semana ${i+1}${enCurso?' <span style="font-size:0.65rem;background:rgba(201,168,76,0.15);color:#c9a84c;padding:1px 6px;border-radius:10px">En curso</span>':''}</td>
+      <td style="color:#9a9080;font-size:0.75rem">${periodo}</td>
+      <td>${esFuturo?'—':'$ '+fmtR(swK.venta)}</td>
+      <td style="color:${esFuturo?'inherit':'#c9a84c'}">${esFuturo?'—':'$ '+fmtR(swK.contrib)}</td>
+      <td>${esFuturo?'—':fmtM(swK.margenPct)}</td>
+      <td>${esFuturo?'—':swK.txns}</td>
+      <td>${esFuturo?'—':fmtR(swK.kilos)+' kg'}</td>
+      <td>${esFuturo?'—':swK.clientes}</td>
+    </tr>`;
+  });
+
+  // ── Tops por MES MÓVIL ──
+  const _tpm2={};
+  mesesMoviles.forEach(m2=>{
+    const _s=new Date(m2.start);_s.setHours(0,0,0,0);
+    const _e=new Date(m2.end);_e.setHours(23,59,59,999);
+    if(_s>today) return; // solo meses iniciados
+    const _r=allData.filter(r=>r.fecha&&r.fecha>=_s&&r.fecha<=_e&&r.vendedor===vendedor);
+    if(!_r.length) return;
+    const _c={},_p={},_cp={},_pc={};
+    _r.forEach(r=>{
+      _c[r.cliente]=(_c[r.cliente]||0)+r.contrib;
+      _p[r.producto]=(_p[r.producto]||0)+r.contrib;
+      if(!_cp[r.cliente])_cp[r.cliente]={};
+      _cp[r.cliente][r.producto]=(_cp[r.cliente][r.producto]||0)+r.contrib;
+      if(!_pc[r.producto])_pc[r.producto]={};
+      _pc[r.producto][r.cliente]=(_pc[r.producto][r.cliente]||0)+r.contrib;
+    });
+    _tpm2[m2.nombre]={
+      cli:Object.entries(_c).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([n,v])=>({n,v,det:Object.entries(_cp[n]||{}).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k2,v2])=>({n:k2,v:v2}))})),
+      prod:Object.entries(_p).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([n,v])=>({n,v,det:Object.entries(_pc[n]||{}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k2,v2])=>({n:k2,v:v2}))}))
+    };
+  });
+  const _opsMeses = Object.keys(_tpm2).map(nm=>'<option value="'+nm+'"'+(nm===mes.nombre?' selected':'')+'>'+nm+'</option>').join('');
+  const _dataMesActual = _tpm2[mes.nombre]||{cli:[],prod:[]};
+  const _topCliInicialHTML  = '';
+  const _topProdInicialHTML = '';
+
+
+  // ── Clientes con margen bajo 14% — mes en curso ──
+  const cliMargenMap = {};
+  allData.filter(r => {
+    if(!r.fecha) return false;
+    const s2 = new Date(mes.start); s2.setHours(0,0,0,0);
+    const e2 = new Date(mes.end); e2.setHours(23,59,59,999);
+    const eCut2 = e2 < today ? e2 : new Date(today); eCut2.setHours(23,59,59,999);
+    return r.fecha >= s2 && r.fecha <= eCut2 && r.vendedor === vendedor;
+  }).forEach(r => {
+    if(!cliMargenMap[r.cliente]) cliMargenMap[r.cliente] = {contrib:0, total:0, prods:{}};
+    cliMargenMap[r.cliente].contrib += r.contrib;
+    cliMargenMap[r.cliente].total   += r.total;
+    if(!cliMargenMap[r.cliente].prods[r.producto]) cliMargenMap[r.cliente].prods[r.producto] = {contrib:0, total:0};
+    cliMargenMap[r.cliente].prods[r.producto].contrib += r.contrib;
+    cliMargenMap[r.cliente].prods[r.producto].total   += r.total;
+  });
+
+  const clisBajoMargen = Object.entries(cliMargenMap)
+    .map(([nombre, d]) => ({
+      nombre,
+      margenPct: d.total > 0 ? (d.contrib / d.total) * 100 : 0,
+      contrib: d.contrib,
+      total: d.total,
+      prods: Object.entries(d.prods)
+        .map(([pnom, pd]) => ({
+          nombre: pnom,
+          margenPct: pd.total > 0 ? (pd.contrib / pd.total) * 100 : 0,
+          contrib: pd.contrib,
+          total: pd.total
+        }))
+        .sort((a,b) => a.margenPct - b.margenPct)
+    }))
+    .filter(cli => cli.margenPct < 14 && cli.total > 0)
+    .sort((a,b) => a.margenPct - b.margenPct);
+
+  const colorMgn = pct => pct < 10 ? '#ef4444' : pct < 14 ? '#f59e0b' : '#4caf7d';
+
+  const margenAlertHTML = clisBajoMargen.length === 0
+    ? '<p style="color:#5a5248;font-size:0.82rem;margin-bottom:1.5rem">Sin clientes con margen bajo 14% en este período. ✓</p>'
+    : clisBajoMargen.map((cli, idx) => {
+        const cColor = colorMgn(cli.margenPct);
+        const prodRows = cli.prods.map(p => `
+          <tr>
+            <td style="text-align:left;padding-left:1rem;color:#9a9080;font-size:0.75rem;max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.nombre}">${p.nombre}</td>
+            <td style="text-align:right;font-size:0.75rem;color:#e8e4d9;white-space:nowrap;">$ ${fmtR(p.total)}</td>
+            <td style="text-align:right;font-size:0.75rem;color:#9a9080;white-space:nowrap;">$ ${fmtR(p.contrib)}</td>
+            <td style="text-align:right;font-size:0.75rem;font-weight:600;color:${colorMgn(p.margenPct)};white-space:nowrap;">${p.margenPct.toFixed(1)}%</td>
+          </tr>`).join('');
+
+        return `<div style="border-radius:8px;overflow:hidden;border:1px solid rgba(201,168,76,0.12);margin-bottom:8px;">
+          <div onclick="(function(){var b=document.getElementById('mb_${idx}');var a=document.getElementById('arr_${idx}');var open=b.style.display!=='none';b.style.display=open?'none':'block';a.style.transform=open?'':'rotate(180deg)';})()"
+               style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#161616;cursor:pointer;user-select:none;">
+            <span style="min-width:18px;font-size:0.7rem;font-weight:700;color:#5a5248">${idx+1}</span>
+            <span style="flex:1;font-size:0.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${cli.nombre}">${cli.nombre}</span>
+            <span style="font-size:0.75rem;color:#9a9080;white-space:nowrap;">Venta\u00A0$\u00A0${fmtR(cli.total)}</span>
+            <span style="font-size:0.75rem;color:#9a9080;white-space:nowrap;margin-left:10px;">Contrib\u00A0$\u00A0${fmtR(cli.contrib)}</span>
+            <span style="min-width:54px;text-align:right;font-size:0.88rem;font-weight:700;color:${cColor};margin-left:10px;">${cli.margenPct.toFixed(1)}%</span>
+            <span id="arr_${idx}" style="font-size:0.65rem;color:#5a5248;margin-left:6px;transition:transform 0.2s;">▼</span>
+          </div>
+          <div id="mb_${idx}" style="display:none;background:#0f0f0f;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="border-top:1px solid rgba(201,168,76,0.1);">
+                  <th style="text-align:left;padding:6px 14px 6px 1rem;font-size:0.65rem;color:#5a5248;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Producto</th>
+                  <th style="text-align:right;padding:6px 14px;font-size:0.65rem;color:#5a5248;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Venta $</th>
+                  <th style="text-align:right;padding:6px 14px;font-size:0.65rem;color:#5a5248;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Contrib $</th>
+                  <th style="text-align:right;padding:6px 14px;font-size:0.65rem;color:#5a5248;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Margen %</th>
+                </tr>
+              </thead>
+              <tbody style="border-top:1px solid rgba(201,168,76,0.06);">${prodRows}</tbody>
+            </table>
+          </div>
+        </div>`;
+      }).join('');
+
+  // Generate full HTML
+  const reportHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte ${nombreCorto} — GESTAPACK 2026</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#0d0d0d;--bg2:#161616;--bg3:#1e1e1e;--bg4:#252525;--gold:#c9a84c;--gold2:#e8c97a;--gold3:#8a6a20;--text:#e8e4d9;--text2:#9a9080;--border:rgba(201,168,76,0.15);--border2:rgba(201,168,76,0.3);--green:#22c55e;--red:#ef4444;--radius:10px;--radius-sm:6px;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;font-size:14px;}
+.lock{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem;}
+.lock-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2.5rem;text-align:center;max-width:360px;width:100%;}
+.lock-logo{font-size:2.5rem;margin-bottom:1rem;}
+.lock-title{font-size:1.1rem;font-weight:700;color:var(--gold);margin-bottom:0.25rem;}
+.lock-sub{font-size:0.8rem;color:var(--text2);margin-bottom:1.5rem;}
+.lock-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--radius-sm);font-size:0.9rem;margin-bottom:10px;text-align:center;letter-spacing:2px;}
+.lock-input:focus{outline:none;border-color:var(--gold);}
+.lock-btn{width:100%;background:var(--gold3);border:1px solid var(--gold);color:var(--gold2);padding:10px;border-radius:var(--radius-sm);font-size:0.9rem;font-weight:600;cursor:pointer;}
+.lock-btn:hover{background:var(--gold);color:#0d0d0d;}
+.lock-err{color:var(--red);font-size:0.78rem;margin-top:8px;display:none;}
+.app{display:none;padding:1.5rem;max-width:1100px;margin:0 auto;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:52px;margin:-1.5rem -1.5rem 1.5rem;}
+.topbar-name{font-size:0.85rem;color:var(--text2);}
+.topbar-name span{color:var(--gold);font-weight:600;}
+.section-title{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--gold);display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;}
+.section-title::before{content:'';display:block;width:3px;height:14px;background:var(--gold);border-radius:2px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.5rem;}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+.kpi-label{font-size:0.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px;}
+.kpi-value{font-size:1.15rem;font-weight:700;line-height:1.1;}
+.gold{color:var(--gold);}
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:1.5rem;}
+table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+thead th{background:var(--bg3);color:var(--text2);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.6px;padding:10px 12px;text-align:right;white-space:nowrap;}
+thead th:first-child{text-align:left;}
+tbody tr{border-top:1px solid var(--border);}
+tbody tr:hover{background:var(--bg3);}
+tbody td{padding:9px 12px;text-align:right;}
+tbody td:first-child{text-align:left;font-weight:500;}
+.top-list{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1.5rem;}
+.top-hdr{padding:10px 14px;background:var(--bg3);font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--gold);}
+.top-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+.mes-info{font-size:0.75rem;color:var(--text2);margin-bottom:1rem;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);}
+.mes-info strong{color:var(--gold2);}
+.top-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid rgba(201,168,76,0.1);cursor:pointer;transition:background 0.15s;}
+.top-item:hover{background:rgba(201,168,76,0.05);}
+.top-item.active{background:rgba(201,168,76,0.08);}
+.top-detail{padding:8px 14px;background:rgba(0,0,0,0.3);border-top:1px solid rgba(201,168,76,0.15);font-size:0.72rem;}
+@media(max-width:600px){.top-grid{grid-template-columns:1fr;}.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div class="lock" id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-logo">🔒</div>
+    <div class="lock-title">GESTAPACK — Reporte Personal</div>
+    <div class="lock-sub">Ingresa tu contraseña para acceder</div>
+    <input class="lock-input" type="password" id="pwdInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPwd()">
+    <button class="lock-btn" onclick="checkPwd()">Ingresar</button>
+    <div class="lock-err" id="pwdErr">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appContent">
+  <div class="topbar">
+    <img src="data:image/png;base64,LOGO_B64" alt="GESTAPACK" style="height:24px;filter:brightness(1.1);">
+    <span class="topbar-name">Reporte personal — <span>${nombreCorto}</span></span>
+  </div>
+
+  <!-- MES MOVIL -->
+  <div class="section-title">Mes Móvil en Curso — ${mes.nombre}</div>
+  <div class="mes-info">
+    <strong>${mes.start.toLocaleDateString('es-CL',{day:'numeric',month:'long'})} al ${mes.end.toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'})}</strong>
+    &nbsp;·&nbsp; ${datosMes.dTrans} días hábiles transcurridos &nbsp;·&nbsp; ${datosMes.dRest} restantes
+  </div>
+  ${kpiCards(datosMes.k, datosMes.metaV, datosMes.cumpl, datosMes.proy, datosMes.proyPct)}
+
+  <!-- AÑO MOVIL -->
+  <div class="section-title">Histórico de Meses Móviles 2026</div>
+  ${mesesIniciados.length===0?'<p style="color:var(--text2);font-size:0.82rem;margin-bottom:1.5rem">Sin datos aún.</p>':
+  `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th style="text-align:left">Mes</th>
+      <th>Venta $</th><th>Contribución $</th><th>Margen %</th>
+      <th>Contrib/Kg</th><th>Facturas</th><th>Clientes</th><th>SKUs</th>
+      <th>Meta $</th><th>Cumpl.</th>
+    </tr></thead>
+    <tbody>${anioRows}</tbody>
+  </table></div>`}
+
+  <!-- RANKING -->
+  <div class="section-title">Ranking — Mes en Curso</div>
+  <div style="margin-bottom:0.5rem;font-size:0.8rem;color:var(--text2);">Tu posición: <strong style="color:var(--gold2);font-size:1rem">${medals[miPosicion-1]||'#'+miPosicion}</strong> de ${rankVendedores.length} vendedores</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="text-align:left">Pos.</th>
+        <th style="text-align:left">Vendedor</th>
+        <th>Contribución</th><th>Meta</th><th>Cumpl.</th>
+      </tr></thead>
+      <tbody>${rankRows}</tbody>
+    </table>
+  </div>
+
+  ${rankHistRows?`<div class="section-title">Ranking Histórico</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th style="text-align:left">Mes</th>
+      <th>Posición</th><th>Cumpl.</th>
+    </tr></thead>
+    <tbody>${rankHistRows}</tbody>
+  </table></div>`:''}
+
+  <!-- SEMANAS -->
+  <div class="section-title">Semanas del Mes — ${mes.nombre}</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="text-align:left">Semana</th>
+        <th style="text-align:left">Período</th>
+        <th>Venta $</th><th>Contribución $</th><th>Margen %</th><th>Facturas</th><th>Kilos</th><th>Clientes</th>
+      </tr></thead>
+      <tbody>${semanasHTML}</tbody>
+    </table>
+  </div>
+
+  <!-- ALERTA MARGEN BAJO -->
+  <div class="section-title" style="color:#f59e0b;">⚠ Clientes con Margen bajo 14% — ${mes.nombre}</div>
+  <p style="font-size:0.75rem;color:#9a9080;margin-bottom:0.75rem;">Pincha cada cliente para ver los productos que bajan el margen.</p>
+  ${margenAlertHTML}
+
+  <!-- TOP -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+    <div class="section-title" style="margin-bottom:0">Top 10 — Mes Móvil</div>
+    <select id="smsel" onchange="smcambiar()" style="background:#1e1e1e;border:1px solid rgba(201,168,76,0.3);color:#e8e4d9;padding:5px 12px;border-radius:6px;font-size:0.8rem;">OPCIONES_PLACEHOLDER</select>
+  </div>
+  <div class="top-grid">
+    <div>
+      <div class="top-list">
+        <div class="top-hdr" id="smhcli">Top 10 Clientes — MES_NOMBRE_PLACEHOLDER</div>
+        <div id="smbcli">TOPS_CLI_PLACEHOLDER</div>
+      </div>
+    </div>
+    <div>
+      <div class="top-list">
+        <div class="top-hdr" id="smhprod">Top 10 Productos — MES_NOMBRE_PLACEHOLDER</div>
+        <div id="smbprod">TOPS_PROD_PLACEHOLDER</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP 10 PRODUCTOS EMPRESA -->
+  <div class="section-title" style="margin-top:0.5rem;">🏢 Top 10 Productos Empresa — ${mes.nombre}</div>
+  <p style="font-size:0.75rem;color:#9a9080;margin-bottom:0.75rem;">Los 10 productos con mayor contribución de la empresa en el mes en curso (todos los vendedores).</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:left">#</th>
+          <th style="text-align:left">Producto</th>
+          <th>Contribución $</th>
+          <th>Margen %</th>
+        </tr>
+      </thead>
+      <tbody>TOP5_COMPARACION_PLACEHOLDER</tbody>
+    </table>
+  </div>
+
+  <!-- RECUPERACIÓN DE CLIENTES -->
+  <div class="section-title" style="margin-top:2rem;color:#ef4444;">⚠ Recuperación de Clientes — ${mes.nombre}</div>
+  <p style="font-size:0.75rem;color:#9a9080;margin-bottom:1rem;">Base: últimos 3 meses. Caída fuerte = menos del 30% del promedio histórico. Productos: Top 20 empresa del año.</p>
+
+  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#ef4444;margin-bottom:0.4rem;">🔴 Sin compra este mes</div>
+  <p style="font-size:0.72rem;color:#9a9080;margin-bottom:0.5rem;">Clientes con contribución histórica &gt; $300.000 en algún mes de los últimos 3.</p>
+  <div class="tbl-wrap" style="margin-bottom:1.5rem;">
+    <table>
+      <thead><tr>
+        <th style="text-align:left">Cliente</th>
+        <th>Prom. mensual 3M $</th>
+        <th>Último mes activo</th>
+        <th>Meses sin compra</th>
+      </tr></thead>
+      <tbody>REC_SIN_PLACEHOLDER</tbody>
+    </table>
+  </div>
+
+  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#f59e0b;margin-bottom:0.4rem;">🟡 Caída fuerte (&lt;30% del promedio)</div>
+  <div class="tbl-wrap" style="margin-bottom:1.5rem;">
+    <table>
+      <thead><tr>
+        <th style="text-align:left">Cliente</th>
+        <th>Promedio 3M $</th>
+        <th>Este mes $</th>
+        <th>% del promedio</th>
+      </tr></thead>
+      <tbody>REC_CAIDA_PLACEHOLDER</tbody>
+    </table>
+  </div>
+
+  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#9a9080;margin-bottom:0.4rem;">📦 Dejaron un producto (Top 20 empresa)</div>
+  <div class="tbl-wrap" style="margin-bottom:1.5rem;">
+    <table>
+      <thead><tr>
+        <th style="text-align:left">Cliente</th>
+        <th style="text-align:left">Producto perdido</th>
+        <th>Frecuencia 3M</th>
+        <th>Prom. venta producto $</th>
+      </tr></thead>
+      <tbody>REC_PROD_PLACEHOLDER</tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const PWD_HASH = '${pwdHash}';
+function checkPwd() {
+  const input = document.getElementById('pwdInput').value.trim();
+  const hash = btoa(unescape(encodeURIComponent(input + '_gestapack2026')));
+  if(hash === PWD_HASH) {
+    document.getElementById('lockScreen').style.display='none';
+    document.getElementById('appContent').style.display='block';
+    smcambiar();
+  } else {
+    document.getElementById('pwdErr').style.display='block';
+    document.getElementById('pwdInput').value='';
+    document.getElementById('pwdInput').focus();
+    setTimeout(()=>document.getElementById('pwdErr').style.display='none',2000);
+  }
+}
+document.getElementById('pwdInput').addEventListener('keydown',e=>{if(e.key==='Enter')checkPwd();});
+function toggleDetail(id) {
+  const detail = document.getElementById('detail_'+id);
+  const allDetails = document.querySelectorAll('.top-detail');
+  const allItems = document.querySelectorAll('.top-item');
+  const isOpen = detail.style.display !== 'none';
+  allDetails.forEach(d => d.style.display='none');
+  allItems.forEach(i => i.classList.remove('active'));
+  if(!isOpen) {
+    detail.style.display='block';
+    detail.previousElementSibling.classList.add('active');
+  }
+}
+function toggleMesKpi(id) {
+  const row = document.getElementById(id);
+  const arrow = document.getElementById('arrow_'+id);
+  const isOpen = row.style.display !== 'none';
+  // Cerrar todos
+  document.querySelectorAll('[id^="mes_"]').forEach(r => r.style.display='none');
+  document.querySelectorAll('[id^="arrow_mes_"]').forEach(a => { a.style.transform=''; a.style.color='#5a5248'; });
+  if(!isOpen) {
+    row.style.display='table-row';
+    arrow.style.transform='rotate(90deg)';
+    arrow.style.color='#c9a84c';
+  }
+}
+var smData=TOPS_JSON_PLACEHOLDER;
+function smfmt(n){return n==null?'--':Math.round(n).toLocaleString('es-CL');}
+function smbuild(items,dl,px){
+  if(!items||!items.length)return '<p style="padding:12px;color:#5a5248">Sin datos</p>';
+  var html='';
+  items.forEach(function(it,i){
+    html+='<div class="top-item" data-px="'+px+'" data-i="'+i+'">';
+    html+='<span class="top-rank">'+(i+1)+'</span>';
+    html+='<span class="top-name">'+it.n+'</span>';
+    html+='<span class="top-val">$ '+smfmt(it.v)+'</span>';
+    html+='</div>';
+    html+='<div class="top-detail" id="smd'+px+i+'" style="display:none">';
+    html+='<div style="font-size:0.68rem;color:#5a5248;text-transform:uppercase;margin-bottom:4px">'+dl+'</div>';
+    (it.det||[]).forEach(function(d){
+      html+='<div class="top-detail-item"><span>'+d.n+'</span><span>$ '+smfmt(d.v)+'</span></div>';
+    });
+    html+='</div>';
+  });
+  return html;
+}
+document.addEventListener('click',function(e){
+  var item=e.target.closest('.top-item[data-px]');
+  if(!item)return;
+  var px=item.dataset.px,i=item.dataset.i;
+  var det=document.getElementById('smd'+px+i);
+  if(!det)return;
+  var open=det.style.display!=='none';
+  document.querySelectorAll('[id^="smd"]').forEach(function(d){d.style.display='none';});
+  document.querySelectorAll('.top-item').forEach(function(t){t.classList.remove('active');});
+  if(!open){det.style.display='block';item.classList.add('active');}
+});
+function smcambiar(){
+  var mes=document.getElementById('smsel').value;
+  var data=smData[mes]||{cli:[],prod:[]};
+  document.getElementById('smhcli').textContent='Top 10 Clientes — '+mes;
+  document.getElementById('smhprod').textContent='Top 10 Productos — '+mes;
+  document.getElementById('smbcli').innerHTML=smbuild(data.cli,'Top 3 productos del cliente','cli');
+  document.getElementById('smbprod').innerHTML=smbuild(data.prod,'Top 5 clientes del producto','prod');
+}
+<\/script>
+</body>
+</html>`;
+
+  // ── Recuperación de clientes del vendedor ──
+  const recMesesHist = mesesMoviles.filter(function(m) {
+    const e = new Date(m.end); e.setHours(23,59,59,999);
+    return e < mesS;
+  }).slice(-3);
+
+  // Top 20 productos empresa año móvil
+  const recTop20Map = {};
+  mesesMoviles.forEach(function(mv) {
+    const mvS = new Date(mv.start); mvS.setHours(0,0,0,0);
+    const mvE = new Date(mv.end);   mvE.setHours(23,59,59,999);
+    allData.filter(function(r) { return r.fecha && r.fecha >= mvS && r.fecha <= mvE; }).forEach(function(r) {
+      recTop20Map[r.producto] = (recTop20Map[r.producto]||0) + r.contrib;
+    });
+  });
+  const recTop20Set = {};
+  Object.keys(recTop20Map).sort(function(a,b) { return recTop20Map[b]-recTop20Map[a]; }).slice(0,20).forEach(function(p) { recTop20Set[p]=true; });
+
+  // Datos mes en curso — solo este vendedor
+  const recCurMap = {};
+  allData.filter(function(r) {
+    return r.fecha && r.fecha >= mesS && r.fecha <= mesECut && r.vendedor === vendedor;
+  }).forEach(function(r) {
+    if (!recCurMap[r.cliente]) recCurMap[r.cliente] = {venta:0, contrib:0, prods:{}};
+    recCurMap[r.cliente].venta   += r.total;
+    recCurMap[r.cliente].contrib += r.contrib;
+    recCurMap[r.cliente].prods[r.producto] = true;
+  });
+
+  // Datos históricos 3 meses — solo este vendedor
+  const recHistMap = {};
+  recMesesHist.forEach(function(m) {
+    const hS = new Date(m.start); hS.setHours(0,0,0,0);
+    const hE = new Date(m.end);   hE.setHours(23,59,59,999);
+    allData.filter(function(r) {
+      return r.fecha && r.fecha >= hS && r.fecha <= hE && r.vendedor === vendedor;
+    }).forEach(function(r) {
+      if (!recHistMap[r.cliente]) recHistMap[r.cliente] = {meses:{}};
+      if (!recHistMap[r.cliente].meses[m.nombre]) recHistMap[r.cliente].meses[m.nombre] = {venta:0, contrib:0, prods:{}};
+      recHistMap[r.cliente].meses[m.nombre].venta   += r.total;
+      recHistMap[r.cliente].meses[m.nombre].contrib += r.contrib;
+      recHistMap[r.cliente].meses[m.nombre].prods[r.producto] = true;
+    });
+  });
+
+  const recFmt = function(n) { return Math.round(n).toLocaleString('es-CL'); };
+  const noRow = function(cols, msg) { return '<tr><td colspan="'+cols+'" style="text-align:center;color:#5a5248;padding:0.8rem">'+msg+'</td></tr>'; };
+
+  // Sin compra — contrib histórica > 300.000
+  const recSin = [];
+  Object.keys(recHistMap).forEach(function(cli) {
+    if (recCurMap[cli]) return;
+    const h = recHistMap[cli];
+    const maxContrib = recMesesHist.reduce(function(mx,m) {
+      return Math.max(mx, h.meses[m.nombre] ? (h.meses[m.nombre].contrib||0) : 0);
+    }, 0);
+    if (maxContrib < 300000) return;
+    const totalVenta = recMesesHist.reduce(function(s,m) { return s+(h.meses[m.nombre]?h.meses[m.nombre].venta:0);},0);
+    const promedio = totalVenta / recMesesHist.length;
+    const ultimoMes = recMesesHist.slice().reverse().find(function(m){return h.meses[m.nombre]&&h.meses[m.nombre].venta>0;});
+    const idxUlt = ultimoMes ? recMesesHist.findIndex(function(m){return m.nombre===ultimoMes.nombre;}): -1;
+    const mesesSin = idxUlt >= 0 ? (recMesesHist.length-1-idxUlt)+1 : recMesesHist.length+1;
+    recSin.push({cli:cli, promedio:promedio, ultimoMes:ultimoMes?ultimoMes.nombre:'-', mesesSin:mesesSin});
+  });
+  recSin.sort(function(a,b){return a.mesesSin-b.mesesSin;});
+
+  const recSinHTML = recSin.length===0 ? noRow(4,'Todos los clientes han comprado este mes.') :
+    recSin.map(function(d){
+      return '<tr><td style="text-align:left">'+d.cli+'</td><td>$ '+recFmt(d.promedio)+'</td><td style="color:#9a9080">'+d.ultimoMes+'</td>'+
+        '<td><span style="background:rgba(239,68,68,0.15);color:#ef4444;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600">'+d.mesesSin+' mes'+(d.mesesSin>1?'es':'')+'</span></td></tr>';
+    }).join('');
+
+  // Caída fuerte (<30%)
+  const recCaida = [];
+  Object.keys(recHistMap).forEach(function(cli){
+    if (!recCurMap[cli]) return;
+    const h = recHistMap[cli];
+    const totalVenta = recMesesHist.reduce(function(s,m){return s+(h.meses[m.nombre]?h.meses[m.nombre].venta:0);},0);
+    const mesesConVenta = recMesesHist.filter(function(m){return h.meses[m.nombre]&&h.meses[m.nombre].venta>0;}).length;
+    if (mesesConVenta===0) return;
+    const promedio = totalVenta/recMesesHist.length;
+    const actual = recCurMap[cli].venta;
+    const pct = promedio>0?(actual/promedio)*100:100;
+    if (pct<30) recCaida.push({cli:cli,promedio:promedio,actual:actual,pct:pct});
+  });
+  recCaida.sort(function(a,b){return a.pct-b.pct;});
+
+  const recCaidaHTML = recCaida.length===0 ? noRow(4,'Sin caidas fuertes este mes.') :
+    recCaida.map(function(d){
+      return '<tr><td style="text-align:left">'+d.cli+'</td><td>$ '+recFmt(d.promedio)+'</td><td>$ '+recFmt(d.actual)+'</td>'+
+        '<td><span style="background:rgba(245,158,11,0.15);color:#f59e0b;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600">'+d.pct.toFixed(0)+'%</span></td></tr>';
+    }).join('');
+
+  // Productos perdidos top 20
+  const recProdPerd = [];
+  Object.keys(recHistMap).forEach(function(cli){
+    const h = recHistMap[cli];
+    const prodFreq = {};
+    recMesesHist.forEach(function(m){
+      if (h.meses[m.nombre]) {
+        Object.keys(h.meses[m.nombre].prods).forEach(function(p){
+          if (recTop20Set[p]) prodFreq[p]=(prodFreq[p]||0)+1;
+        });
+      }
+    });
+    const recurrentes = Object.keys(prodFreq).filter(function(p){return prodFreq[p]>=2;});
+    if (!recurrentes.length) return;
+    const prodsActuales = recCurMap[cli]?recCurMap[cli].prods:{};
+    recurrentes.forEach(function(prod){
+      if (prodsActuales[prod]) return;
+      var vp=0,mc=0;
+      recMesesHist.forEach(function(m){
+        if (h.meses[m.nombre]&&h.meses[m.nombre].prods[prod]){
+          const hS=new Date(m.start);hS.setHours(0,0,0,0);
+          const hE=new Date(m.end);hE.setHours(23,59,59,999);
+          const v=allData.filter(function(r){return r.fecha>=hS&&r.fecha<=hE&&r.cliente===cli&&r.producto===prod&&r.vendedor===vendedor;}).reduce(function(s,r){return s+r.total;},0);
+          vp+=v;mc++;
+        }
+      });
+      recProdPerd.push({cli:cli,prod:prod,freq:prodFreq[prod],promProd:mc>0?vp/mc:0});
+    });
+  });
+  recProdPerd.sort(function(a,b){return b.promProd-a.promProd;});
+
+  const recProdHTML = recProdPerd.length===0 ? noRow(4,'Sin productos perdidos detectados.') :
+    recProdPerd.map(function(d){
+      return '<tr><td style="text-align:left">'+d.cli+'</td><td style="text-align:left;color:#c9a84c">'+d.prod+'</td>'+
+        '<td style="text-align:center">'+d.freq+'/3 meses</td><td>$ '+recFmt(d.promProd)+'</td></tr>';
+    }).join('');
+
+  // Inject logo
+  const logoB64 = document.querySelector('.topbar-logo img').src.split(',')[1];
+  let finalHTML = reportHTML.replace('LOGO_B64', logoB64);
+  finalHTML = finalHTML.replace('OPCIONES_PLACEHOLDER', _opsMeses);
+  finalHTML = finalHTML.replace(/MES_NOMBRE_PLACEHOLDER/g, mes.nombre);
+  finalHTML = finalHTML.replace('TOPS_CLI_PLACEHOLDER',  _topCliInicialHTML);
+  finalHTML = finalHTML.replace('TOPS_PROD_PLACEHOLDER', _topProdInicialHTML);
+  finalHTML = finalHTML.replace('TOPS_JSON_PLACEHOLDER', JSON.stringify(_tpm2));
+  finalHTML = finalHTML.replace('TOP5_COMPARACION_PLACEHOLDER', compRows);
+  finalHTML = finalHTML.replace('REC_SIN_PLACEHOLDER',   recSinHTML);
+  finalHTML = finalHTML.replace('REC_CAIDA_PLACEHOLDER', recCaidaHTML);
+  finalHTML = finalHTML.replace('REC_PROD_PLACEHOLDER',  recProdHTML);
+
+
+
+  // Download
+  const blob = new Blob([finalHTML], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `reporte_${nombreCorto.toLowerCase()}_gestapack_${new Date().toISOString().split('T')[0]}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportarMetas() {
+  const metas = getMetas();
+  const json = JSON.stringify(metas, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gestapack_metas_2026.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importarMetas() {
+  document.getElementById('metasFileInput').click();
+}
+
+function importarMetasArchivo(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const metas = JSON.parse(e.target.result);
+      // Merge: archivo importado gana sobre defaults, pero no borra lo nuevo
+      const current = getMetas();
+      const merged = Object.assign({}, current, metas);
+      saveMetas(merged);
+      alert('✓ Metas importadas correctamente. Recarga el archivo Excel para ver los cambios.');
+      if(allData.length > 0) { renderMes(); renderMetas(); }
+    } catch(err) {
+      alert('Error al leer el archivo. Asegúrate de importar un archivo .json exportado desde este dashboard.');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+const META_CAL = 92000000;
+const NOMBRES_MES_CAL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                         'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function getMesesCalendario() {
+  const meses = [];
+  for(let m=0; m<12; m++){
+    const start = new Date(2026, m, 1); start.setHours(0,0,0,0);
+    const end = new Date(2026, m+1, 0); end.setHours(23,59,59,999);
+    meses.push({ nombre: NOMBRES_MES_CAL[m], start, end });
+  }
+  return meses;
+}
+
+function renderCal() {
+  if(allData.length===0) return;
+  document.getElementById('cal-empty').style.display='none';
+  document.getElementById('cal-content').style.display='block';
+
+  const mesesCal = getMesesCalendario();
+  const container = document.getElementById('cal-content');
+
+  const mesActual = mesesCal.find(m => m.start <= today && today <= m.end) || mesesCal[4];
+  const cutoff = today > mesActual.end ? mesActual.end : today;
+  const diasTrans = diasHabilesEntre(mesActual.start, cutoff);
+  const diasRest = today > mesActual.end ? 0 : diasHabilesEntre(new Date(today.getTime()+86400000), mesActual.end);
+
+  const rowsActual = getFilteredData(mesActual.start, cutoff);
+  const kActual = calcKPIs(rowsActual);
+  const cumplActual = (kActual.contrib / META_CAL) * 100;
+  const ritmo = calcRitmo(kActual.contrib, mesActual.start, mesActual.end, cutoff);
+  const proyActual = kActual.contrib + ritmo * diasRest;
+  const proyPct = (proyActual / META_CAL) * 100;
+
+  let html = `<div style="margin-bottom:1.5rem;">
+    <div style="font-size:1rem;font-weight:700;color:var(--gold);margin-bottom:0.25rem;">${mesActual.nombre} 2026 — Mes en curso</div>
+    <div style="font-size:0.75rem;color:var(--text2);margin-bottom:1rem;">
+      ${mesActual.start.toLocaleDateString('es-CL',{day:'numeric',month:'long'})} al
+      ${mesActual.end.toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'})}
+      &nbsp;·&nbsp; ${diasTrans} días hábiles transcurridos &nbsp;·&nbsp; ${diasRest} restantes
+    </div>
+    <div class="proy-box" style="margin-bottom:1rem;">
+      <div>
+        <div class="proy-label">Proyección al cierre</div>
+        <div class="proy-val">$ ${fmt(proyActual)}</div>
+        <div class="proy-detail">Meta: $ ${fmt(META_CAL)} &nbsp;·&nbsp; Proyec. cumpl: <span class="pct-txt ${pctClass(proyPct)}">${fmtPct(proyPct)}</span></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="proy-label">Cumplimiento al día</div>
+        <div class="proy-val"><span class="pct-txt ${pctClass(cumplActual)}" style="font-size:1.1rem">${fmtPct(cumplActual)}</span></div>
+        <div class="proy-detail">$ ${fmt(kActual.contrib)} de $ ${fmt(META_CAL)}</div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Venta Total</div><div class="kpi-value">$ ${fmt(kActual.venta)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Contribución</div><div class="kpi-value gold">$ ${fmt(kActual.contrib)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Margen %</div><div class="kpi-value">${fmtMargen(kActual.margenPct)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Contrib/Kilo</div><div class="kpi-value">$ ${fmt(kActual.contribKg)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Ticket Promedio</div><div class="kpi-value">$ ${fmt(kActual.ticket)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Clientes Únicos</div><div class="kpi-value">${kActual.clientes}</div></div>
+      <div class="kpi-card"><div class="kpi-label">SKUs Vendidos</div><div class="kpi-value">${kActual.skus}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Kilos Totales</div><div class="kpi-value">${fmt(kActual.kilos)} kg</div></div>
+      <div class="kpi-card"><div class="kpi-label">Venta Promedio Diaria</div><div class="kpi-value gold">$ ${diasTrans > 0 ? fmt(kActual.venta / diasTrans) : '—'}</div><div class="kpi-sub">${diasTrans} días hábiles transcurridos</div></div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-bottom:0.75rem;">Detalle por Mes Calendario 2026</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th style="text-align:left">Mes</th>
+      <th>Venta $</th><th>Contribución $</th><th>Margen %</th>
+      <th>Contrib/Kg</th><th>Ticket Prom.</th>
+      <th>Facturas</th><th>Clientes</th><th>SKUs</th><th>Kilos</th>
+      <th>Cumpl. %</th><th>Proyección</th>
+    </tr></thead><tbody>`;
+
+  let totVenta=0, totContrib=0, totKilos=0, totTxns=0, totClientes=new Set(), totSkus=new Set();
+
+  mesesCal.forEach(mes => {
+    if(mes.start > today) {
+      html += `<tr style="color:var(--text3)"><td>${mes.nombre}</td>
+        <td colspan="11" style="text-align:center;font-size:0.75rem;">Mes futuro</td></tr>`;
+      return;
+    }
+    const esCurso = mes.start <= today && today <= mes.end;
+    const rows = getFilteredData(mes.start, mes.end);
+    const k = calcKPIs(rows);
+    const cut = today > mes.end ? mes.end : today;
+    const dTrans = diasHabilesEntre(mes.start, cut);
+    const dRest = today > mes.end ? 0 : diasHabilesEntre(new Date(today.getTime()+86400000), mes.end);
+    const cumpl = (k.contrib / META_CAL) * 100;
+    const rit = calcRitmo(k.contrib, mes.start, mes.end, cut);
+    const proy = k.contrib + rit * dRest;
+    const proyP = (proy / META_CAL) * 100;
+
+    totVenta+=k.venta; totContrib+=k.contrib; totKilos+=k.kilos;
+    rows.forEach(r=>{ totClientes.add(r.cliente); totSkus.add(r.sku); });
+
+    const proyCol = esCurso
+      ? `<div style="line-height:1.4"><div class="pct-txt ${pctClass(proyP)}">${fmtPct(proyP)}</div><div style="font-size:0.7rem;color:var(--text2)">$ ${fmt(proy)}</div></div>`
+      : '—';
+
+    html += `<tr${esCurso?' style="background:rgba(201,168,76,0.05)"':''}>
+      <td style="font-weight:${esCurso?'600':'400'};color:${esCurso?'var(--gold2)':'inherit'}">
+        ${mes.nombre}${esCurso?' <span class="chip gold">En curso</span>':''}
+      </td>
+      <td>$ ${fmt(k.venta)}</td>
+      <td>$ ${fmt(k.contrib)}</td>
+      <td>${fmtMargen(k.margenPct)}</td>
+      <td>$ ${fmt(k.contribKg)}</td>
+      <td>$ ${fmt(k.ticket)}</td>
+      <td>${k.clientes}</td>
+      <td>${k.skus}</td>
+      <td>${k.txns}</td>
+      <td>${fmt(k.kilos)} kg</td>
+      <td><span class="pct-txt ${pctClass(cumpl)}">${fmtPct(cumpl)}</span></td>
+      <td>${proyCol}</td>
+    </tr>`;
+  });
+
+  const totMargen = totVenta!==0?(totContrib/totVenta)*100:0;
+  html += `<tr class="tbl-total">
+    <td>TOTAL AÑO</td>
+    <td>$ ${fmt(totVenta)}</td><td>$ ${fmt(totContrib)}</td>
+    <td>${fmtMargen(totMargen)}</td>
+    <td>—</td><td>—</td>
+    <td>${totTxns}</td>
+    <td>${totClientes.size}</td><td>${totSkus.size}</td>
+    <td>${fmt(totKilos)} kg</td><td>—</td><td>—</td>
+  </tr></tbody></table></div>`;
+
+  container.innerHTML = html;
+}
+
+
+// ============================================================
+// TAB HISTÓRICO CUMPLIMIENTO
+// ============================================================
+function renderHistorico() {
+  if(allData.length===0) return;
+  document.getElementById('historico-empty').style.display='none';
+  document.getElementById('historico-content').style.display='block';
+
+  const metas = getMetas();
+  const mesActual = getCurrentMes();
+  const mesesCerrados = mesesMoviles.filter(function(m){
+    const fin=new Date(m.end); fin.setHours(23,59,59,999);
+    return fin < today;
+  });
+
+  if(mesesCerrados.length===0){
+    document.getElementById('historico-content').innerHTML='<div class="empty"><div class="empty-icon">📅</div><h3>Sin meses cerrados aún</h3><p>Aparecerá el histórico al cerrar el primer mes móvil.</p></div>';
+    return;
+  }
+
+  const container = document.getElementById('historico-content');
+
+  // KPIs resumen
+  let totalContribAnio=0, totalMetaAnio=0;
+  mesesCerrados.forEach(function(m){
+    const s=new Date(m.start);s.setHours(0,0,0,0);
+    const e=new Date(m.end);e.setHours(23,59,59,999);
+    const rows=getFilteredData(s,e);
+    totalContribAnio+=calcKPIs(rows).contrib;
+    VENDEDORES_ACTIVOS.forEach(function(v){totalMetaAnio+=parseFloat(metas[m.nombre+'_'+v]||0);});
+  });
+  const cumplAnio=totalMetaAnio>0?(totalContribAnio/totalMetaAnio)*100:null;
+
+  const resMeses=mesesCerrados.map(function(m){
+    const s=new Date(m.start);s.setHours(0,0,0,0);
+    const e=new Date(m.end);e.setHours(23,59,59,999);
+    const contrib=calcKPIs(getFilteredData(s,e)).contrib;
+    let meta=0;
+    VENDEDORES_ACTIVOS.forEach(function(v){meta+=parseFloat(metas[m.nombre+'_'+v]||0);});
+    return {nombre:m.nombre,contrib,meta,cumpl:meta>0?contrib/meta*100:null};
+  });
+  const mejorMes=resMeses.slice().sort(function(a,b){return(b.cumpl||0)-(a.cumpl||0);})[0];
+  const peorMes=resMeses.slice().sort(function(a,b){return(a.cumpl||0)-(b.cumpl||0);})[0];
+
+  let html='<div class="kpi-grid" style="margin-bottom:1.5rem;">';
+  html+='<div class="kpi-card"><div class="kpi-label">Contrib acumulada</div><div class="kpi-value gold">$ '+fmt(totalContribAnio)+'</div><div class="kpi-sub">Meses cerrados</div></div>';
+  html+='<div class="kpi-card"><div class="kpi-label">Meta acumulada</div><div class="kpi-value">$ '+fmt(totalMetaAnio)+'</div></div>';
+  html+='<div class="kpi-card"><div class="kpi-label">Cumplimiento año</div><div class="kpi-value '+pctClass(cumplAnio)+'">'+fmtPct(cumplAnio)+'</div></div>';
+  html+='<div class="kpi-card"><div class="kpi-label">Mejor mes</div><div class="kpi-value">'+(mejorMes?mejorMes.nombre:'—')+'</div><div class="kpi-sub">'+(mejorMes?fmtPct(mejorMes.cumpl):'')+'</div></div>';
+  html+='<div class="kpi-card"><div class="kpi-label">Mes más débil</div><div class="kpi-value">'+(peorMes?peorMes.nombre:'—')+'</div><div class="kpi-sub">'+(peorMes?fmtPct(peorMes.cumpl):'')+'</div></div>';
+  html+='<div class="kpi-card"><div class="kpi-label">Meses cerrados</div><div class="kpi-value">'+mesesCerrados.length+'</div></div>';
+  html+='</div>';
+
+  // Tabla vendedores × meses
+  const vendedores=VENDEDORES_ACTIVOS.filter(function(v){return !VENDEDORES_EXCLUIDOS_MES.includes(v);});
+  html+='<div class="section-hdr"><div class="section-title">Cumplimiento por Vendedor × Mes Móvil</div></div>';
+  html+='<div class="tbl-wrap" style="margin-bottom:1.5rem;"><table><thead><tr><th style="text-align:left">Vendedor</th>';
+  mesesCerrados.forEach(function(m){html+='<th>'+m.nombre+'</th>';});
+  html+='<th>Promedio</th></tr></thead><tbody>';
+
+  vendedores.forEach(function(v){
+    html+='<tr><td>'+v+'</td>';
+    let suma=0,cnt=0;
+    mesesCerrados.forEach(function(m){
+      const s=new Date(m.start);s.setHours(0,0,0,0);
+      const e=new Date(m.end);e.setHours(23,59,59,999);
+      const k=calcKPIs(getFilteredData(s,e,v));
+      const meta=parseFloat(metas[m.nombre+'_'+v]||0);
+      const cumpl=meta>0?(k.contrib/meta)*100:null;
+      if(cumpl!==null){suma+=cumpl;cnt++;}
+      const bar=cumpl!==null
+        ?'<div class="pct-bar-wrap"><div class="pct-bar"><div class="pct-bar-fill '+(cumpl>=100?'over':cumpl<80?'low':'')+'" style="width:'+Math.min(cumpl,100)+'%"></div></div><span class="pct-txt '+pctClass(cumpl)+'">'+fmtPct(cumpl)+'</span></div>'
+        :'<span style="color:var(--text3)">Sin meta</span>';
+      html+='<td style="min-width:110px">'+bar+'</td>';
+    });
+    const avg=cnt>0?suma/cnt:null;
+    html+='<td><span class="pct-txt '+(avg!==null?pctClass(avg):'')+'" style="font-weight:700">'+(avg!==null?fmtPct(avg):'—')+'</span></td></tr>';
+  });
+
+  // Fila empresa total
+  html+='<tr class="tbl-total"><td>EMPRESA TOTAL</td>';
+  let sumaE=0,cntE=0;
+  mesesCerrados.forEach(function(m){
+    const s=new Date(m.start);s.setHours(0,0,0,0);
+    const e=new Date(m.end);e.setHours(23,59,59,999);
+    const k=calcKPIs(getFilteredData(s,e));
+    let meta=0;
+    VENDEDORES_ACTIVOS.forEach(function(v){meta+=parseFloat(metas[m.nombre+'_'+v]||0);});
+    const cumpl=meta>0?(k.contrib/meta)*100:null;
+    if(cumpl!==null){sumaE+=cumpl;cntE++;}
+    const bar=cumpl!==null
+      ?'<div class="pct-bar-wrap"><div class="pct-bar"><div class="pct-bar-fill '+(cumpl>=100?'over':cumpl<80?'low':'')+'" style="width:'+Math.min(cumpl,100)+'%"></div></div><span class="pct-txt '+pctClass(cumpl)+'">'+fmtPct(cumpl)+'</span></div>'
+      :'—';
+    html+='<td>'+bar+'</td>';
+  });
+  const avgE=cntE>0?sumaE/cntE:null;
+  html+='<td><span class="pct-txt '+(avgE!==null?pctClass(avgE):'')+'" style="font-weight:700">'+(avgE!==null?fmtPct(avgE):'—')+'</span></td></tr>';
+  html+='</tbody></table></div>';
+
+  // Tabla detalle contrib vs meta por mes
+  html+='<div class="section-hdr"><div class="section-title">Detalle Contrib $ vs Meta $ por Mes</div></div>';
+  html+='<div class="tbl-wrap"><table><thead><tr><th style="text-align:left">Mes Móvil</th><th>Meta</th><th>Contrib real</th><th>Diferencia</th><th>Cumpl %</th><th>Margen %</th><th>Contrib/kg</th><th>Clientes</th></tr></thead><tbody>';
+  let tMeta=0,tContrib=0,tVenta=0,tKg=0;
+  mesesCerrados.forEach(function(m){
+    const s=new Date(m.start);s.setHours(0,0,0,0);
+    const e=new Date(m.end);e.setHours(23,59,59,999);
+    const k=calcKPIs(getFilteredData(s,e));
+    let meta=0;
+    VENDEDORES_ACTIVOS.forEach(function(v){meta+=parseFloat(metas[m.nombre+'_'+v]||0);});
+    const cumpl=meta>0?(k.contrib/meta)*100:null;
+    const diff=k.contrib-meta;
+    tMeta+=meta;tContrib+=k.contrib;tVenta+=k.venta;tKg+=k.kilos;
+    html+='<tr><td style="font-weight:500">'+m.nombre+'</td><td>$ '+fmt(meta)+'</td><td>$ '+fmt(k.contrib)+'</td>';
+    html+='<td style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'+':'')+'$ '+fmt(diff)+'</td>';
+    html+='<td><span class="pct-txt '+(cumpl!==null?pctClass(cumpl):'')+'">'+fmtPct(cumpl)+'</span></td>';
+    html+='<td>'+fmtMargen(k.margenPct)+'</td><td>$ '+fmt(k.contribKg)+'</td><td>'+k.clientes+'</td></tr>';
+  });
+  const tMargenPct=tVenta>0?tContrib/tVenta*100:0;
+  const tDiff=tContrib-tMeta;
+  const tCumpl=tMeta>0?tContrib/tMeta*100:null;
+  html+='<tr class="tbl-total"><td>TOTAL</td><td>$ '+fmt(tMeta)+'</td><td>$ '+fmt(tContrib)+'</td>';
+  html+='<td style="color:'+(tDiff>=0?'var(--green)':'var(--red)')+'">'+(tDiff>=0?'+':'')+'$ '+fmt(tDiff)+'</td>';
+  html+='<td><span class="pct-txt '+(tCumpl!==null?pctClass(tCumpl):'')+'">'+fmtPct(tCumpl)+'</span></td>';
+  html+='<td>'+fmtMargen(tMargenPct)+'</td><td>—</td><td>—</td></tr>';
+  html+='</tbody></table></div>';
+
+  container.innerHTML=html;
+}
+
+function exportarPeorMargenXLSX() {
+  // Recolectar datos del DOM peorMargenData (guardado globalmente)
+  if (!window._peorMargenData || window._peorMargenData.length === 0) {
+    alert('No hay clientes con margen bajo 15% en el período seleccionado.');
+    return;
+  }
+  const data = window._peorMargenData;
+  const wb = XLSX.utils.book_new();
+
+  // ── Hoja 1: Resumen clientes ──
+  const resumen = [
+    ['CLIENTES CON MARGEN BAJO 15%'],
+    ['Generado:', new Date().toLocaleDateString('es-CL')],
+    [],
+    ['Cliente', 'Vendedor', 'Venta $', 'Contribución $', 'Margen %']
+  ];
+  data.forEach(d => {
+    resumen.push([d.cli, d.vendedor, d.venta, d.contrib, parseFloat(d.margenPct.toFixed(2))]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(resumen);
+  ws1['!cols'] = [{wch:45},{wch:22},{wch:16},{wch:18},{wch:12}];
+  // Formato porcentaje en columna E desde fila 5
+  for (let i = 5; i <= resumen.length; i++) {
+    const cell = ws1['E'+i];
+    if (cell) { cell.z = '0.0"%"'; }
+  }
+  XLSX.utils.book_append_sheet(wb, ws1, 'Resumen Clientes');
+
+  // ── Hoja 2: Detalle productos ──
+  const detalle = [
+    ['DETALLE DE PRODUCTOS POR CLIENTE (MARGEN BAJO 15%)'],
+    ['Generado:', new Date().toLocaleDateString('es-CL')],
+    [],
+    ['Cliente', 'Vendedor', 'Margen Cliente %', 'Producto', 'Venta Producto $', 'Contribución Producto $', 'Margen Producto %']
+  ];
+  data.forEach(d => {
+    (d.prods || []).forEach(p => {
+      detalle.push([
+        d.cli, d.vendedor,
+        parseFloat(d.margenPct.toFixed(2)),
+        p.nombre,
+        p.total, p.contrib,
+        parseFloat(p.margenPct.toFixed(2))
+      ]);
+    });
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(detalle);
+  ws2['!cols'] = [{wch:45},{wch:22},{wch:18},{wch:40},{wch:20},{wch:22},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Detalle Productos');
+
+  const fecha = new Date().toLocaleDateString('es-CL').replace(/\//g,'-');
+  XLSX.writeFile(wb, 'Margen_Bajo_15pct_' + fecha + '.xlsx');
+}
+</script>
+</body>
+</html>
