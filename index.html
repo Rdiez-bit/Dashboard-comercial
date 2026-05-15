@@ -659,21 +659,29 @@ function pctClass(p) {
 
 function parseDate(str) {
   if(str===null||str===undefined||str==='') return null;
+  // Excel serial number
   if(typeof str==='number') {
     const d=new Date((str-25569)*86400*1000);
     return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
   }
   const s=str.toString().trim();
   if(!s) return null;
+  // DD/MM/YYYY or DD-MM-YYYY
   const p=s.split(/[\/\-]/);
   if(p.length===3){
     const a=parseInt(p[0]),b=parseInt(p[1]),c=parseInt(p[2]);
     if(!isNaN(a)&&!isNaN(b)&&!isNaN(c)){
-      if(a>12) return new Date(c,b-1,a);
-      if(c>31) return new Date(c,b-1,a);
-      return new Date(c,b-1,a);
+      // If last part is 4-digit year: DD/MM/YYYY
+      if(c>1900) return new Date(c,b-1,a);
+      // If first part is 4-digit year: YYYY/MM/DD
+      if(a>1900) return new Date(a,b-1,c);
+      // If day > 12, must be DD/MM/YY
+      if(a>12) return new Date(2000+c,b-1,a);
+      // Default assume DD/MM/YY
+      return new Date(2000+c,b-1,a);
     }
   }
+  // Try native parse (handles ISO 8601)
   const d=new Date(s);
   return isNaN(d.getTime())?null:d;
 }
@@ -735,22 +743,36 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
   const reader = new FileReader();
   reader.onload = function(ev) {
     try {
-      const wb = XLSX.read(ev.target.result, {type:'binary'});
+      const data = new Uint8Array(ev.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:false, raw:false});
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
       if(aoa.length < 2) { alert('Archivo sin datos.'); return; }
 
       const headers = aoa[0];
-      // Índices fijos basados en el formato del informe Gestapack
-      // Fecha=3, Razón Social=2, Documento=4, Vendedor=11
-      // Producto=13, SKU=14, Cantidad=18, Total Línea=21
-      // Margen Contrib $=26, Margen Contrib %=27
-      const iF=3, iCli=2, iDoc=4, iFolio=5, iVen=11, iProd=13, iSKU=14, iCant=18, iTotal=21, iContrib=26, iMPct=27;
+      // Detectar índices por nombre de columna (robusto ante reordenamientos)
+      function findCol(name) {
+        for(let i=0;i<headers.length;i++){
+          if(headers[i]&&headers[i].toString().trim()===name) return i;
+        }
+        return -1;
+      }
+      const iF    = findCol('Fecha')          !== -1 ? findCol('Fecha')          : 3;
+      const iCli  = findCol('Razón Social')   !== -1 ? findCol('Razón Social')   : 2;
+      const iDoc  = findCol('Documento')      !== -1 ? findCol('Documento')      : 4;
+      const iFolio= findCol('Folio')          !== -1 ? findCol('Folio')          : 5;
+      const iVen  = findCol('Vendedor')       !== -1 ? findCol('Vendedor')       : 11;
+      const iProd = findCol('Producto')       !== -1 ? findCol('Producto')       : 13;
+      const iSKU  = findCol('SKU')            !== -1 ? findCol('SKU')            : 14;
+      const iCant = findCol('Cantidad')       !== -1 ? findCol('Cantidad')       : 18;
+      const iTotal= findCol('Total Línea')    !== -1 ? findCol('Total Línea')    : 21;
+      const iContrib = findCol('Margen Contrib $')  !== -1 ? findCol('Margen Contrib $')  : 26;
+      const iMPct    = findCol('Margen Contrib %')  !== -1 ? findCol('Margen Contrib %')  : 27;
 
       function toNum(v){
         if(v===''||v===null||v===undefined) return 0;
         if(typeof v==='number') return v;
-        const n=parseFloat(v.toString().replace(/[^0-9.,-]/g,'').replace(',','.'));
+        const n=parseFloat(v.toString().replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
         return isNaN(n)?0:n;
       }
 
@@ -771,18 +793,20 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
       }).filter(function(r){ return r.fecha && !isNaN(r.fecha.getTime()); });
 
       if(allData.length===0){
-        alert('No se encontraron filas válidas. Verifica que la columna Fecha tenga formato DD/MM/AAAA.');
+        // Debug: show first raw row to help diagnose
+        const sample = aoa[1] ? aoa[1].slice(0,5).join(' | ') : '(vacío)';
+        alert('No se encontraron filas válidas.\nPrimera fila de datos: ' + sample + '\nVerifica que la columna Fecha tenga formato DD/MM/AAAA.');
         return;
       }
 
-      document.getElementById('fileLabel').textContent = file.name;
+      document.getElementById('fileLabel').textContent = file.name + ' (' + allData.length.toLocaleString('es-CL') + ' filas)';
       document.getElementById('fileLabel').className = 'file-label ok';
       renderAll();
     } catch(err) {
       alert('Error al leer el archivo: ' + err.message);
     }
   };
-  reader.readAsBinaryString(file);
+  reader.readAsArrayBuffer(file);
 });
 
 function getFilteredData(start, end, vendedor=null) {
