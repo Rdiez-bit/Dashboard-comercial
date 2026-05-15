@@ -772,7 +772,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
       function toNum(v){
         if(v===''||v===null||v===undefined) return 0;
         if(typeof v==='number') return v;
-        const n=parseFloat(v.toString().replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+        const n=parseFloat(v.toString().replace(/[^0-9.,-]/g,'').replace(',','.'));
         return isNaN(n)?0:n;
       }
 
